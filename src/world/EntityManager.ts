@@ -65,7 +65,7 @@ export function createCreature(name: string, x: number, y: number, variant: numb
 }
 
 export function hydrateCreature(dbData: any): Creature {
-    const { id, name, x, y } = dbData;
+    const { id, name, x, y, variant_seed } = dbData;
 
     // Re-generate deterministic attributes
     const seed = stringToHash(name);
@@ -82,6 +82,7 @@ export function hydrateCreature(dbData: any): Creature {
 
         seed,
         loadout: generateLoadout(seed),
+        variantSeed: variant_seed,
 
         temperament: rng.pick(temperaments),
         animPhase: rng.nextFloat() * Math.PI * 2,
