@@ -77,7 +77,9 @@ export class AvatarRenderer {
         this.drawFeet(creature, rig, animState);
         this.drawHeadBase(creature, rig, animState);
         this.drawItem(creature, 'face', rig, animState);
-        this.drawItem(creature, 'hat', rig, animState);
+        if (creature.gender !== 'F') {
+            this.drawItem(creature, 'hat', rig, animState);
+        }
 
         // 5. Name Tag
         this.drawNameTag(centerX, baseY - 45, creature.name);
