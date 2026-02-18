@@ -359,10 +359,13 @@ export class WorldRenderer {
         const isNight = lightLevel < 0.6;
         let hash = 0;
         for (let i = 0; i < s.id.length; i++) hash = (hash << 5) - hash + s.id.charCodeAt(i);
-        const flicker = Math.sin(time * 5 + hash) * 0.02 + 0.98;
+
+        // Subtle Flicker: 0.95 to 1.05
+        const flicker = Math.sin(time * 3 + hash) * 0.05 + 1.0;
 
         const intensity = isNight ? Math.max(0, (0.6 - lightLevel) * 2) * flicker : 0;
-        const bulbInfo = isNight ? `rgba(255, 235, 59, ${intensity})` : '#AAA';
+        // Dimmer bulb color (warm white, not pure yellow)
+        const bulbInfo = isNight ? `rgba(255, 240, 150, ${intensity * 0.8})` : '#AAA';
 
         ctx.fillStyle = bulbInfo;
         ctx.fillRect(cx - 3, cy - 48, 6, 8);
@@ -374,10 +377,15 @@ export class WorldRenderer {
 
         let hash = 0;
         for (let i = 0; i < s.id.length; i++) hash = (hash << 5) - hash + s.id.charCodeAt(i);
-        const flicker = Math.sin(time * 5 + hash) * 0.02 + 0.98;
-        const intensity = Math.max(0, (0.6 - lightLevel) * 2) * flicker;
 
-        if (intensity < 0.1) return;
+        // Very subtle flicker for glow
+        const flicker = Math.sin(time * 3 + hash) * 0.02 + 0.98;
+        const baseIntensity = Math.max(0, (0.6 - lightLevel) * 2);
+
+        // Global reduction of glow strength
+        const intensity = baseIntensity * flicker * 0.6;
+
+        if (intensity < 0.05) return;
 
         ctx.save();
         const p = isoToScreen(s.x, s.y);
@@ -386,10 +394,13 @@ export class WorldRenderer {
 
         ctx.globalCompositeOperation = 'screen';
 
-        const radius = 60;
+        // Reduced Radius: 70px (was 120+ implied)
+        const radius = 70;
         const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, radius);
-        grad.addColorStop(0, `rgba(255, 220, 100, ${0.9 * intensity})`);
-        grad.addColorStop(0.3, `rgba(255, 160, 60, ${0.3 * intensity})`);
+
+        // Soft, warm, transparent glow
+        grad.addColorStop(0, `rgba(255, 220, 160, ${0.18 * intensity})`); // Core
+        grad.addColorStop(0.4, `rgba(255, 180, 100, ${0.08 * intensity})`); // Mid
         grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
         ctx.fillStyle = grad;

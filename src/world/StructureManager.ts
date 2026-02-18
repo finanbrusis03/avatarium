@@ -77,35 +77,76 @@ export class StructureManager {
             placed++;
         }
 
-        // 2. Place Lamp Posts (Deterministic grid walk)
-        // Ideally we would check for "Asphalt" tiles, but Terrain is not passed here.
-        // We'll simulate a "road grid" here or just place randomly near houses?
-        // Let's assume roads are at x%10 === 0 || y%10 === 0 (as per Terrain.ts logic)
+        // 2. Place Lamp Posts (Strategic & Sparse)
+        // Goal: Realistic, cozy lighting. Not a runway.
+        // Rules:
+        // - Max posts = (w * h) / 600 (e.g. 20x20 = 400/600 < 1? No, let's say min 2-3 for small maps).
+        // - Only on "roads" (x%10==0 || y%10==0)
+        // - Prioritize being near a HOUSE (radius 8).
+        // - High scarcity (1 per 30 tiles roughly).
+
+        const maxLamps = Math.max(3, Math.floor((w * h) / 600));
+        let lampCount = 0;
+
+        // Create a list of potential road spots
+        const potentialSpots: { x: number, y: number, score: number }[] = [];
 
         for (let x = 0; x < w; x++) {
             for (let y = 0; y < h; y++) {
-                // Potential Road
-                const isRoad = (x % 10 === 0 || y % 10 === 0);
+                if (x % 10 === 0 || y % 10 === 0) {
+                    // It's a road. Calculate "importance" score based on house proximity.
+                    let score = 0;
 
-                if (isRoad) {
-                    // Place lamp post every 8 tiles roughly using hash
-                    const hash = Math.abs(Math.sin(x * 12.989 + y * 78.233 + seed) * 43758.5453);
-                    if ((hash - Math.floor(hash)) > 0.90) { // 10% chance on road
-                        // Check overlap
-                        if (!this.checkOverlap(x, y, 1, 1)) {
-                            // Also check water for lamps? Optional but good.
-                            const scale = 0.1;
-                            if (noise.noise2D(x * scale, y * scale) < 0.2) continue;
-
-                            this.structures.push({
-                                id: `lamp_${x}_${y}`,
-                                type: 'LAMP_POST',
-                                x, y, width: 1, height: 1
-                            });
+                    // Check nearby houses
+                    for (const s of this.structures) {
+                        if (s.type.startsWith('HOUSE')) {
+                            const dist = Math.abs(x - s.x) + Math.abs(y - s.y); // Manhattan is fine
+                            if (dist < 8) score += (10 - dist); // Closer = better
                         }
+                    }
+
+                    if (score > 0) {
+                        potentialSpots.push({ x, y, score });
                     }
                 }
             }
+        }
+
+        // Sort by score (descending) so we light up villages first
+        potentialSpots.sort((a, b) => b.score - a.score);
+
+        // Pick spots with some randomness but bias towards high score
+        // ACTUALLY: Let's just iterate and pick based on probability + limit.
+
+        // Revised approach:
+        // 1. Shuffle or iterate? If we sort, we might cluster too much. 
+        // Let's keep the high score ones, but enforce min distance between lamps.
+
+        const placedLamps: { x: number, y: number }[] = [];
+        const MIN_LAMP_DIST = 15; // Don't put lamps too close
+
+        for (const spot of potentialSpots) {
+            if (lampCount >= maxLamps) break;
+
+            // Check distance to existing lamps
+            const tooClose = placedLamps.some(l => (Math.abs(l.x - spot.x) + Math.abs(l.y - spot.y)) < MIN_LAMP_DIST);
+            if (tooClose) continue;
+
+            // Check overlap with structures (houses)
+            if (this.checkOverlap(spot.x, spot.y, 1, 1)) continue;
+
+            // Water check
+            const scale = 0.1;
+            if (noise.noise2D(spot.x * scale, spot.y * scale) < 0.2) continue;
+
+            // Place it
+            this.structures.push({
+                id: `lamp_${spot.x}_${spot.y}`,
+                type: 'LAMP_POST',
+                x: spot.x, y: spot.y, width: 1, height: 1
+            });
+            placedLamps.push({ x: spot.x, y: spot.y });
+            lampCount++;
         }
     }
 
