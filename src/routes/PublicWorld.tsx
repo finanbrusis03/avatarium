@@ -202,16 +202,17 @@ export function PublicWorld() {
             rendererRef.current.clear();
 
             // Simple Day/Night Cycle
-            // Convert time (ms) to seconds
             const timeSec = timeRef.current / 1000;
+            // Use absolute time for event logic to stay synced across reloads
+            const globalTimeSec = Math.floor(Date.now() / 1000);
 
             // Event Logic: "Noite"
             // Use config values or defaults
             const interval = worldConfig?.night_interval_seconds || 600;
             const duration = worldConfig?.night_duration_seconds || 120;
-            const intensity = worldConfig?.night_intensity ?? 0.2; // Note: 0.2 is the original hardcoded value (dark)
+            const intensity = worldConfig?.night_intensity ?? 0.2;
 
-            const cycleTime = timeSec % interval;
+            const cycleTime = globalTimeSec % interval;
             const isEventActive = cycleTime < duration;
 
             let ll = 1.0;
