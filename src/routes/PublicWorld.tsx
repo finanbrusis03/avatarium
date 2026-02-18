@@ -219,9 +219,6 @@ export function PublicWorld() {
 
             if (isEventActive) {
                 // FORCE NIGHT using config intensity
-                // If the user meant "intensity" as in "how much to darken", then 0.2 is very dark.
-                // If they meant "intensity" as in a floor, max(0.2, intensity) makes it stay at intensity.
-                // Let's use the intensity value directly as the light level during the "Noite" event.
                 ll = intensity;
             } else {
                 // Normal Cycle (slower, ~5 min period)
