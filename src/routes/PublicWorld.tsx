@@ -175,8 +175,8 @@ export function PublicWorld() {
 
         // Only recreate renderer if structural config changed
         if (!rendererRef.current ||
-            rendererRef.current.width !== worldConfig.width ||
-            rendererRef.current.height !== worldConfig.height ||
+            rendererRef.current.mapWidth !== worldConfig.width ||
+            rendererRef.current.mapHeight !== worldConfig.height ||
             rendererRef.current.seed !== worldConfig.seed) {
 
             console.log('Recreating renderer due to structural config change...');
@@ -189,6 +189,11 @@ export function PublicWorld() {
                 );
             }
         } else if (rendererRef.current) {
+            // Update canvas dimensions in case they changed without map change
+            if (canvasRef.current) {
+                rendererRef.current.canvasWidth = canvasRef.current.width;
+                rendererRef.current.canvasHeight = canvasRef.current.height;
+            }
             // If config changed but not structurally, just update the renderer's config
             rendererRef.current.updateConfig(worldConfig);
         }

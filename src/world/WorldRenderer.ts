@@ -9,8 +9,8 @@ import { globalParticleSystem } from '../engine/ParticleSystem';
 
 export class WorldRenderer {
     private ctx: CanvasRenderingContext2D;
-    public width: number;
-    public height: number;
+    public canvasWidth: number;
+    public canvasHeight: number;
     public seed: string;
     private avatarRenderer: AvatarRenderer;
     private terrain: Terrain;
@@ -23,38 +23,28 @@ export class WorldRenderer {
     // Config cache
     private config: WorldConfig; // Changed to private, initialized in constructor
 
-    constructor(ctx: CanvasRenderingContext2D, width: number, height: number, config: WorldConfig) {
+    constructor(ctx: CanvasRenderingContext2D, canvasWidth: number, canvasHeight: number, config: WorldConfig) {
         this.ctx = ctx;
-        this.width = width;
-        this.height = height;
+        this.canvasWidth = canvasWidth;
+        this.canvasHeight = canvasHeight;
         this.seed = config.seed;
-        this.config = config; // Initialize config here
+        this.config = config;
         this.avatarRenderer = new AvatarRenderer(ctx);
-        this.terrain = new Terrain(this.width, this.height, this.seed);
-        this.structureManager = new StructureManager(this.width, this.height, this.seed);
+        this.terrain = new Terrain(config.width, config.height, config.seed);
+        this.structureManager = new StructureManager(config.width, config.height, config.seed);
     }
 
-    public updateConfig(config: WorldConfig) {
-        // Update local config and public properties
-        this.config = config;
-        this.width = config.width;
-        this.height = config.height;
-        this.seed = config.seed;
+    public get mapWidth() { return this.config.width; }
+    public get mapHeight() { return this.config.height; }
 
-        // The instruction implies that PublicWorld recreates the renderer if seed changes,
-        // so we don't recreate terrain/structures here based on seed.
-        // However, if width/height change, we should update terrain/structures.
-        // The original logic for recreating terrain/structures was tied to config changes.
-        // Let's keep the recreation logic for terrain/structures if width/height change,
-        // but assume seed changes lead to a full renderer recreation.
-        // For now, based on the instruction's provided `updateConfig` body,
-        // it seems to simplify to just updating the config object.
-        // The original `if` block is removed as per the instruction's structure.
+    public updateConfig(config: WorldConfig) {
+        this.config = config;
+        this.seed = config.seed;
     }
 
     public isPositionBlocked(x: number, y: number): boolean {
         // 1. Bounds Check
-        if (x < 0 || x >= this.width || y < 0 || y >= this.height) return true;
+        if (x < 0 || x >= this.config.width || y < 0 || y >= this.config.height) return true;
 
         // 2. Terrain Check (Water)
         // Note: We use Math.floor because creatures are at grid coords, but let's be safe
@@ -67,7 +57,7 @@ export class WorldRenderer {
 
     public clear() {
         this.ctx.fillStyle = '#1a1a1a';
-        this.ctx.fillRect(0, 0, this.width, this.height);
+        this.ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
     }
 
     public drawWorld(camera: Camera, creatures: Creature[], time: number, lightLevel: number, activeEvent: string | null = null, selectedId: string | null = null) {
@@ -80,8 +70,8 @@ export class WorldRenderer {
 
         ctx.save();
 
-        const centerX = this.width / 2;
-        const centerY = this.height / 2;
+        const centerX = this.canvasWidth / 2;
+        const centerY = this.canvasHeight / 2;
 
         ctx.translate(centerX, centerY);
         ctx.scale(camera.zoom, camera.zoom);
@@ -226,7 +216,7 @@ export class WorldRenderer {
         if (overlayAlpha > 0.05) {
             ctx.save();
             ctx.fillStyle = `rgba(10, 10, 25, ${overlayAlpha})`;
-            ctx.fillRect(0, 0, this.width, this.height);
+            ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
             ctx.restore();
         }
 
