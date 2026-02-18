@@ -35,7 +35,9 @@ export const AvatarService = {
 
     async create(name: string, x: number, y: number, variant: number, gender: 'M' | 'F' = 'M'): Promise<Creature | null> {
         const normalizedName = normalizeHandle(name);
-        const newCreature = createCreature(normalizedName, x, y, variant, gender);
+        const roundedX = Math.round(x);
+        const roundedY = Math.round(y);
+        const newCreature = createCreature(normalizedName, roundedX, roundedY, variant, gender);
 
         // Fetch world config to decide seed logic
         const config = await WorldConfigService.getConfig();
@@ -54,7 +56,7 @@ export const AvatarService = {
             name: newCreature.name,
             x: newCreature.x,
             y: newCreature.y,
-            color: newCreature.seed.toString(),
+            color: newCreature.color, // Save the HSL string
             variant_seed: variantSeed,
             gender: gender
         });

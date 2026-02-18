@@ -35,8 +35,8 @@ export class SpawnManager {
                         // Found a spot! 
                         // Add a tiny random offset within the tile so they don't stack perfectly
                         return {
-                            x: tx + (Math.random() - 0.5) * 0.2,
-                            y: ty + (Math.random() - 0.5) * 0.2
+                            x: tx,
+                            y: ty
                         };
                     }
                 }
