@@ -11,9 +11,6 @@ export class AvatarRenderer {
     }
 
     public draw(creature: Creature, _camera: Camera, time: number) {
-        // Unused variables: ctx is used via this.ctx in sub-methods, camera is unused here (used in world renderer transform)
-        // We keep signature for potential future use or consistency, but remove unused locals.
-
         // Interpolate position
         let renderX = creature.x;
         let renderY = creature.y;
@@ -43,7 +40,6 @@ export class AvatarRenderer {
         this.drawShadow(centerX, centerY);
 
         // RIG SETUP
-        // Base height offset (floating slightly above shadow)
         const baseY = centerY - 15 - Math.abs(bob);
 
         const rig: AvatarRig = {
@@ -65,24 +61,17 @@ export class AvatarRenderer {
             time,
             isMoving,
             bob,
-            facing: 'right' // TODO: Calculate facing based on movement delta
+            facing: 'right'
         };
 
         // DRAW LAYERS
-
-        // 1. Back (Wings, Backpack)
         this.drawItem(creature, 'back', rig, animState);
-
-        // 2. Body Base (Skin)
-        this.drawBodyBase(rig, animState);
-
-        // 3. Clothes (Bottom -> Top -> Shoes)
+        this.drawBodyBase(creature, rig, animState);
         this.drawItem(creature, 'bottom', rig, animState);
         this.drawItem(creature, 'top', rig, animState);
         this.drawItem(creature, 'shoes', rig, animState);
-
-        // 4. Head/Face
-        this.drawHeadBase(rig, animState);
+        this.drawFeet(creature, rig, animState);
+        this.drawHeadBase(creature, rig, animState);
         this.drawItem(creature, 'face', rig, animState);
         this.drawItem(creature, 'hat', rig, animState);
 
@@ -91,7 +80,6 @@ export class AvatarRenderer {
     }
 
     public drawHighlight(creature: Creature, type: 'selected' | 'hover') {
-        // v0.8: Strict NO ground circles. Only pulsing arrow for selected.
         if (type !== 'selected') return;
 
         const { ctx } = this;
@@ -103,12 +91,9 @@ export class AvatarRenderer {
         ctx.save();
         ctx.translate(centerX, baseY);
 
-        // Pulsing Arrow
         const bounce = Math.sin(Date.now() * 0.01) * 5;
-
         ctx.fillStyle = '#FFFF00';
         ctx.beginPath();
-        // Arrow pointing down at head
         ctx.moveTo(0, -60 + bounce);
         ctx.lineTo(-6, -75 + bounce);
         ctx.lineTo(6, -75 + bounce);
@@ -131,29 +116,66 @@ export class AvatarRenderer {
         this.ctx.fill();
     }
 
-    private drawBodyBase(rig: AvatarRig, anim: AnimState) {
+    private drawBodyBase(c: Creature, rig: AvatarRig, anim: AnimState) {
         const { ctx } = this;
         const { x, y } = rig.anchors.torso;
 
-        // Skin color
+        // Skin color (fallback if no custom skin color exists, but let's use a nice range based on variantSeed if available)
         ctx.fillStyle = '#ffdbac';
 
         // Torso
-        ctx.fillRect(x - 6, y - 8, 12, 14);
+        if (c.gender === 'F') {
+            // Slightly more tapered torso for female
+            ctx.beginPath();
+            ctx.moveTo(x - 6, y - 8);
+            ctx.lineTo(x + 6, y - 8);
+            ctx.lineTo(x + 5, y + 6);
+            ctx.lineTo(x - 5, y + 6);
+            ctx.closePath();
+            ctx.fill();
+        } else {
+            ctx.fillRect(x - 6, y - 8, 12, 14);
+        }
 
-        // Arms (simple)
-        const armOffset = anim.isMoving ? Math.sin(anim.time * 0.015) * 4 : 0;
-        ctx.fillRect(x - 9, y - 8 + armOffset, 3, 10); // Left
-        ctx.fillRect(x + 6, y - 8 - armOffset, 3, 10); // Right
+        // Arms (Detailed)
+        const armSwing = anim.isMoving ? Math.sin(anim.time * 0.015) * 8 : 4;
+
+        // Left Arm
+        ctx.save();
+        ctx.translate(x - 6, y - 6);
+        ctx.rotate(armSwing * Math.PI / 180);
+        ctx.fillRect(-3, 0, 3, 10); // Arm
+        ctx.fillRect(-3, 10, 3, 2); // Hand
+        ctx.restore();
+
+        // Right Arm
+        ctx.save();
+        ctx.translate(x + 6, y - 6);
+        ctx.rotate(-armSwing * Math.PI / 180);
+        ctx.fillRect(0, 0, 3, 10); // Arm
+        ctx.fillRect(0, 10, 3, 2); // Hand
+        ctx.restore();
 
         // Neck
         ctx.fillRect(x - 2, y - 10, 4, 4);
-
-        // Legs (if not covered by pants, but bottom item usually draws legs or pants)
-        // We rely on 'bottom' item to draw legs for now to avoid z-fighting or double drawing
     }
 
-    private drawHeadBase(rig: AvatarRig, _anim: AnimState) {
+    private drawFeet(_c: Creature, rig: AvatarRig, anim: AnimState) {
+        const { ctx } = this;
+        const { x, y } = rig.anchors.feet;
+
+        // Base skin color for feet
+        ctx.fillStyle = '#ffdbac';
+
+        const walkOffset = anim.isMoving ? Math.sin(anim.time * 0.015) * 3 : 0;
+
+        // Left Foot
+        ctx.fillRect(x - 5, y + walkOffset, 4, 3);
+        // Right Foot
+        ctx.fillRect(x + 1, y - walkOffset, 4, 3);
+    }
+
+    private drawHeadBase(c: Creature, rig: AvatarRig, _anim: AnimState) {
         const { ctx } = this;
         const { x, y } = rig.anchors.head;
 
@@ -163,7 +185,23 @@ export class AvatarRenderer {
         ctx.arc(x, y, 9, 0, Math.PI * 2);
         ctx.fill();
 
-        // Eyes (default if no face item overrides? or just draw underneath?)
+        // Simple Gender differentiation: Long hair for F, short for M (standard fallback)
+        if (c.gender === 'F') {
+            ctx.fillStyle = '#4e342e'; // Brunette
+            ctx.beginPath();
+            ctx.arc(x, y - 2, 10, Math.PI, Math.PI * 2); // Top hair
+            ctx.fillRect(x - 10, y - 2, 4, 12); // Left side
+            ctx.fillRect(x + 6, y - 2, 4, 12); // Right side
+            ctx.fill();
+        } else {
+            // Short hair/Cap style
+            ctx.fillStyle = '#3e2723';
+            ctx.beginPath();
+            ctx.arc(x, y - 1, 9.5, Math.PI * 1.1, Math.PI * 1.9);
+            ctx.fill();
+        }
+
+        // Eyes
         ctx.fillStyle = 'black';
         ctx.beginPath();
         ctx.arc(x - 3, y + 1, 1, 0, Math.PI * 2);

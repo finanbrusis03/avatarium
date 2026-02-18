@@ -36,12 +36,13 @@ export interface Creature {
 
     // Behavior Attributes (Deterministic)
     temperament: Temperament;
+    gender: 'M' | 'F';
 
     // Animation State (Runtime only)
     animPhase: number;
 }
 
-export function createCreature(name: string, x: number, y: number, variant: number = 0): Creature {
+export function createCreature(name: string, x: number, y: number, variant: number = 0, gender: 'M' | 'F' = 'M'): Creature {
     const seed = stringToHash(name) + variant;
     const rng = new RNG(seed);
 
@@ -57,6 +58,7 @@ export function createCreature(name: string, x: number, y: number, variant: numb
 
         seed,
         loadout: generateLoadout(seed),
+        gender,
 
         temperament: rng.pick(temperaments),
 
@@ -65,7 +67,7 @@ export function createCreature(name: string, x: number, y: number, variant: numb
 }
 
 export function hydrateCreature(dbData: any): Creature {
-    const { id, name, x, y, variant_seed } = dbData;
+    const { id, name, x, y, variant_seed, gender } = dbData;
 
     // Re-generate deterministic attributes
     const seed = stringToHash(name);
@@ -83,6 +85,7 @@ export function hydrateCreature(dbData: any): Creature {
         seed,
         loadout: generateLoadout(seed),
         variantSeed: variant_seed,
+        gender: gender || 'M',
 
         temperament: rng.pick(temperaments),
         animPhase: rng.nextFloat() * Math.PI * 2,

@@ -13,6 +13,7 @@ export function AdminPanel() {
     const [creatures, setCreatures] = useState<Creature[]>([]);
     const [newName, setNewName] = useState('');
     const [variant, setVariant] = useState(0);
+    const [gender, setGender] = useState<'M' | 'F'>('M');
 
     // World Config State
     const [config, setConfig] = useState<WorldConfig>({ width: 20, height: 20, seed: 'default' });
@@ -42,7 +43,7 @@ export function AdminPanel() {
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
-        const envPass = import.meta.env.VITE_ADMIN_PASSWORD || 'admin123';
+        const envPass = import.meta.env.VITE_ADMIN_PASSWORD || 'Cr1$Z_8812';
         if (password === envPass) {
             setIsAuthenticated(true);
             localStorage.setItem('avatarium_admin', 'true');
@@ -63,7 +64,7 @@ export function AdminPanel() {
         const x = Math.floor(Math.random() * config.width); // Use dynamic world size
         const y = Math.floor(Math.random() * config.height);
 
-        await AvatarService.create(newName, x, y, variant);
+        await AvatarService.create(newName, x, y, variant, gender);
         setNewName('');
         loadData();
     };
@@ -191,6 +192,16 @@ export function AdminPanel() {
                             type="number" value={variant} onChange={e => setVariant(Number(e.target.value))}
                             style={{ padding: '10px', borderRadius: '4px', border: '1px solid #444', background: '#333', color: 'white' }}
                         />
+                        <label style={{ fontSize: '12px', color: '#aaa' }}>Gênero:</label>
+                        <select
+                            value={gender}
+                            onChange={e => setGender(e.target.value as 'M' | 'F')}
+                            style={{ padding: '10px', borderRadius: '4px', border: '1px solid #444', background: '#333', color: 'white' }}
+                        >
+                            <option value="M">Masculino</option>
+                            <option value="F">Feminino</option>
+                        </select>
+
                         <button type="submit" style={{ padding: '10px', background: '#4CAF50', border: 'none', color: 'white', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold' }}>
                             Criar Avatar
                         </button>

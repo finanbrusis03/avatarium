@@ -72,7 +72,7 @@ export function PublicWorld() {
         // Auto-create player if missing
         if (!playerExists) {
             console.log('Spawning @criszimn...');
-            const newPlayer = await AvatarService.create('@criszimn', 10, 10, 0);
+            const newPlayer = await AvatarService.create('@criszimn', 10, 10, 0, 'M');
             if (newPlayer) validAvatars.push(newPlayer);
         }
 

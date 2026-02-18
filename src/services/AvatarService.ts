@@ -31,11 +31,10 @@ export const AvatarService = {
         return data ? hydrateCreature(data) : null;
     },
 
-    async create(name: string, x: number, y: number, variant: number): Promise<Creature | null> {
-        const newCreature = createCreature(name, x, y, variant);
+    async create(name: string, x: number, y: number, variant: number, gender: 'M' | 'F' = 'M'): Promise<Creature | null> {
+        const newCreature = createCreature(name, x, y, variant, gender);
 
         // v0.10: Generate random variant seed for visual uniqueness
-        // Using crypto.randomUUID or Math.random
         const variantSeed = Math.random().toString(36).substring(7);
 
         const { error } = await supabase.from('creatures').insert({
@@ -44,7 +43,8 @@ export const AvatarService = {
             x: newCreature.x,
             y: newCreature.y,
             color: newCreature.seed.toString(),
-            variant_seed: variantSeed // New column
+            variant_seed: variantSeed,
+            gender: gender
         });
 
         if (error) {
