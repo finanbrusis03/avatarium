@@ -70,8 +70,11 @@ export function hydrateCreature(dbData: any): Creature {
     const { id, name, x, y, variant_seed, gender } = dbData;
 
     // Re-generate deterministic attributes
-    const seed = stringToHash(name);
-    const rng = new RNG(seed);
+    const nameSeed = stringToHash(name);
+    const variantHash = variant_seed ? stringToHash(variant_seed) : 0;
+    const finalSeed = nameSeed + variantHash;
+
+    const rng = new RNG(finalSeed);
     const temperaments: Temperament[] = ['SHY', 'SOCIAL', 'EXPLORER'];
 
     return {
@@ -82,8 +85,8 @@ export function hydrateCreature(dbData: any): Creature {
         color: `hsl(${rng.nextFloat() * 360}, 70%, 50%)`,
         moveProgress: 0,
 
-        seed,
-        loadout: generateLoadout(seed),
+        seed: finalSeed,
+        loadout: generateLoadout(finalSeed),
         variantSeed: variant_seed,
         gender: gender || 'M',
 

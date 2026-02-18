@@ -226,12 +226,15 @@ export function AdminPanel() {
                                     <tr key={c.id} style={{ borderBottom: '1px solid #333' }}>
                                         <td style={{ padding: '12px' }}>
                                             <div style={{ fontWeight: 'bold' }}>{c.name}</div>
-                                            <td style={{ padding: '12px' }}>{c.gender === 'M' ? '♂ Masc' : '♀ Fem'}</td>
-                                            <td style={{ padding: '12px', fontFamily: 'monospace', fontSize: '11px' }}>{c.variantSeed || 'N/A'}</td>
-                                            <td style={{ padding: '12px', display: 'flex', gap: '10px' }}>
+                                            <div style={{ fontSize: '10px', color: '#666' }}>{c.id}</div>
+                                        </td>
+                                        <td style={{ padding: '12px' }}>{c.gender === 'M' ? '♂ Masc' : '♀ Fem'}</td>
+                                        <td style={{ padding: '12px', fontFamily: 'monospace', fontSize: '11px' }}>{c.variantSeed || 'N/A'}</td>
+                                        <td style={{ padding: '12px' }}>
+                                            <div style={{ display: 'flex', gap: '10px' }}>
                                                 <button onClick={() => handleFocus(c.name)} style={{ cursor: 'pointer', padding: '5px 10px', borderRadius: '4px', border: '1px solid #555', background: 'transparent', color: 'white' }}>Ver</button>
                                                 <button onClick={() => handleDelete(c.id)} style={{ cursor: 'pointer', padding: '5px 10px', borderRadius: '4px', border: 'none', background: '#E53935', color: 'white' }}>Excluir</button>
-                                            </td>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
