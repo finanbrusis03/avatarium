@@ -4,6 +4,7 @@ import { AvatarService } from '../services/AvatarService';
 import { useNavigate } from 'react-router-dom';
 import { WorldConfigService, type WorldConfig } from '../services/WorldConfigService';
 import { generateUUID } from '../engine/Utils';
+import { SpawnManager } from '../world/SpawnManager';
 
 export function AdminPanel() {
     const navigate = useNavigate();
@@ -16,8 +17,22 @@ export function AdminPanel() {
     const [gender, setGender] = useState<'M' | 'F'>('M');
 
     // World Config State
-    const [config, setConfig] = useState<WorldConfig>({ width: 20, height: 20, seed: 'default' });
-    const [pendingConfig, setPendingConfig] = useState<WorldConfig>({ width: 20, height: 20, seed: 'default' });
+    const [config, setConfig] = useState<WorldConfig>({
+        width: 20,
+        height: 20,
+        seed: 'default',
+        night_interval_seconds: 600,
+        night_duration_seconds: 120,
+        night_intensity: 0.85
+    });
+    const [pendingConfig, setPendingConfig] = useState<WorldConfig>({
+        width: 20,
+        height: 20,
+        seed: 'default',
+        night_interval_seconds: 600,
+        night_duration_seconds: 120,
+        night_intensity: 0.85
+    });
 
     // Initial auth check
     useEffect(() => {
@@ -61,8 +76,7 @@ export function AdminPanel() {
         e.preventDefault();
         if (!newName) return;
 
-        const x = Math.floor(Math.random() * config.width); // Use dynamic world size
-        const y = Math.floor(Math.random() * config.height);
+        const { x, y } = SpawnManager.findValidSpawnPoint(config);
 
         await AvatarService.create(newName, x, y, variant, gender);
         setNewName('');
@@ -77,8 +91,8 @@ export function AdminPanel() {
     };
 
     const handleApplyConfig = async () => {
-        if (confirm(`Alterar tamanho do mundo para ${pendingConfig.width}x${pendingConfig.height}? Isso pode afetar avatares fora do limite.`)) {
-            await WorldConfigService.updateConfig(pendingConfig.width, pendingConfig.height, pendingConfig.seed);
+        if (confirm(`Salvar configurações do mundo?`)) {
+            await WorldConfigService.updateConfig(pendingConfig);
             loadData();
             alert('Configuração salva!');
         }
@@ -166,15 +180,51 @@ export function AdminPanel() {
                         </div>
                     </div>
 
+                    <div style={{ padding: '15px', background: '#2A2A2A', borderRadius: '4px', border: '1px solid #444', marginBottom: '20px' }}>
+                        <h4 style={{ marginTop: 0, color: '#FFB74D' }}>🌙 Evento Noite</h4>
+                        <div style={{ display: 'flex', gap: '15px', marginBottom: '10px' }}>
+                            <div style={{ flex: 1 }}>
+                                <label style={{ display: 'block', fontSize: '11px', color: '#aaa', marginBottom: '3px' }}>Intervalo (s)</label>
+                                <input
+                                    type="number"
+                                    value={pendingConfig.night_interval_seconds}
+                                    onChange={e => setPendingConfig(prev => ({ ...prev, night_interval_seconds: Number(e.target.value) }))}
+                                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #444', background: '#333', color: 'white' }}
+                                />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <label style={{ display: 'block', fontSize: '11px', color: '#aaa', marginBottom: '3px' }}>Duração (s)</label>
+                                <input
+                                    type="number"
+                                    value={pendingConfig.night_duration_seconds}
+                                    onChange={e => setPendingConfig(prev => ({ ...prev, night_duration_seconds: Number(e.target.value) }))}
+                                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #444', background: '#333', color: 'white' }}
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', fontSize: '11px', color: '#aaa', marginBottom: '3px' }}>Intensidade (0.0 - 1.0)</label>
+                            <input
+                                type="number"
+                                step="0.05"
+                                min="0"
+                                max="1"
+                                value={pendingConfig.night_intensity}
+                                onChange={e => setPendingConfig(prev => ({ ...prev, night_intensity: Number(e.target.value) }))}
+                                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #444', background: '#333', color: 'white' }}
+                            />
+                        </div>
+                    </div>
+
                     <button
                         onClick={handleApplyConfig}
                         style={{ width: '100%', padding: '12px', background: '#FF9800', border: 'none', color: 'black', fontWeight: 'bold', cursor: 'pointer', borderRadius: '4px' }}
                     >
-                        Salvar e Regenerar Mundo
+                        Salvar Configurações
                     </button>
 
                     <p style={{ fontSize: '11px', color: '#666', marginTop: '10px' }}>
-                        * Alterar o tamanho ou seed recriará o terreno. Avatares existentes serão mantidos, mas podem ficar fora do mapa se o tamanho for reduzido.
+                        * Alterações de tamanho ou seed recriarão o terreno. Configurações de noite são aplicadas em tempo real.
                     </p>
                 </div>
 

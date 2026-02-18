@@ -10,6 +10,7 @@ import { AvatarService } from '../services/AvatarService';
 import { normalizeHandle } from '../utils/normalizeHandle';
 import type { WorldConfig } from '../services/WorldConfigService';
 import { WorldConfigService } from '../services/WorldConfigService';
+import { SpawnManager } from '../world/SpawnManager';
 
 // UI Components
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -72,7 +73,8 @@ export function PublicWorld() {
         // Auto-create player if missing
         if (!playerExists) {
             console.log('Spawning @criszimn...');
-            const newPlayer = await AvatarService.create('@criszimn', 10, 10, 0, 'M');
+            const { x, y } = SpawnManager.findValidSpawnPoint(worldConfig);
+            const newPlayer = await AvatarService.create('@criszimn', x, y, 0, 'M');
             if (newPlayer) validAvatars.push(newPlayer);
         }
 
@@ -171,14 +173,26 @@ export function PublicWorld() {
         // Render
         if (!isConfigLoaded) return;
 
-        if (canvasRef.current && !rendererRef.current) {
-            rendererRef.current = new WorldRenderer(
-                canvasRef.current.getContext('2d')!,
-                canvasRef.current.width,
-                canvasRef.current.height,
-                worldConfig
-            );
+        // Only recreate renderer if structural config changed
+        if (!rendererRef.current ||
+            rendererRef.current.width !== worldConfig.width ||
+            rendererRef.current.height !== worldConfig.height ||
+            rendererRef.current.seed !== worldConfig.seed) {
+
+            console.log('Recreating renderer due to structural config change...');
+            if (canvasRef.current) {
+                rendererRef.current = new WorldRenderer(
+                    canvasRef.current.getContext('2d')!,
+                    canvasRef.current.width,
+                    canvasRef.current.height,
+                    worldConfig
+                );
+            }
+        } else if (rendererRef.current) {
+            // If config changed but not structurally, just update the renderer's config
+            rendererRef.current.updateConfig(worldConfig);
         }
+
         if (rendererRef.current) {
             rendererRef.current.clear();
 
@@ -187,20 +201,24 @@ export function PublicWorld() {
             const timeSec = timeRef.current / 1000;
 
             // Event Logic: "Noite"
-            // Every 600s (10m), last for 120s (2m).
-            const EVENT_CYCLE = 600;
-            const EVENT_DURATION = 120;
-            const cycleTime = timeSec % EVENT_CYCLE;
-            const isEventActive = cycleTime < EVENT_DURATION;
+            // Use config values or defaults
+            const interval = worldConfig?.night_interval_seconds || 600;
+            const duration = worldConfig?.night_duration_seconds || 120;
+            const intensity = worldConfig?.night_intensity ?? 0.2; // Note: 0.2 is the original hardcoded value (dark)
+
+            const cycleTime = timeSec % interval;
+            const isEventActive = cycleTime < duration;
 
             let ll = 1.0;
 
             if (isEventActive) {
-                // FORCE NIGHT
-                ll = 0.2;
+                // FORCE NIGHT using config intensity
+                // If the user meant "intensity" as in "how much to darken", then 0.2 is very dark.
+                // If they meant "intensity" as in a floor, max(0.2, intensity) makes it stay at intensity.
+                // Let's use the intensity value directly as the light level during the "Noite" event.
+                ll = intensity;
             } else {
                 // Normal Cycle (slower, ~5 min period)
-                // sin(t * 0.02)
                 const dayCycle = Math.sin(timeSec * 0.02);
                 const n = (dayCycle + 1) / 2;
                 ll = 0.2 + n * 0.8;
@@ -208,17 +226,12 @@ export function PublicWorld() {
 
             rendererRef.current.drawWorld(camera, creatures, timeRef.current, ll, null, camera.followTargetId);
 
-            // Dispatch event state to React for UI (if needed, via ref/callback pattern or just external store)
-            // For now, simpler: check state in render logic or use a separate effect for banner?
-            // Actually, we can update a ref that React checks, but forcing a re-render every frame for UI is bad.
-            // Let's use a ref for the banner visibility and update it throttled?
-
-            // Quick UI Hack: manipulating DOM directly for the banner to avoid React render loop cost
+            // Quick UI Hack: manipulating DOM directly for the banner
             const banner = document.getElementById('event-banner');
             if (banner) {
                 if (isEventActive) {
                     banner.style.display = 'block';
-                    banner.innerText = `🌙 Noite (${Math.ceil(EVENT_DURATION - cycleTime)}s)`;
+                    banner.innerText = `🌙 Noite (${Math.ceil(duration - cycleTime)}s)`;
                 } else {
                     banner.style.display = 'none';
                 }
