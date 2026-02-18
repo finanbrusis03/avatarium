@@ -69,6 +69,10 @@ export class AvatarRenderer {
         this.drawBodyBase(creature, rig, animState);
         this.drawItem(creature, 'bottom', rig, animState);
         this.drawItem(creature, 'top', rig, animState);
+
+        // 3.2 Braços (Após o top para não ficar escondido)
+        this.drawArms(creature, rig, animState);
+
         this.drawItem(creature, 'shoes', rig, animState);
         this.drawFeet(creature, rig, animState);
         this.drawHeadBase(creature, rig, animState);
@@ -116,16 +120,15 @@ export class AvatarRenderer {
         this.ctx.fill();
     }
 
-    private drawBodyBase(c: Creature, rig: AvatarRig, anim: AnimState) {
+    private drawBodyBase(c: Creature, rig: AvatarRig, _anim: AnimState) {
         const { ctx } = this;
         const { x, y } = rig.anchors.torso;
 
-        // Skin color (fallback if no custom skin color exists, but let's use a nice range based on variantSeed if available)
+        // Skin color
         ctx.fillStyle = '#ffdbac';
 
         // Torso
         if (c.gender === 'F') {
-            // Slightly more tapered torso for female
             ctx.beginPath();
             ctx.moveTo(x - 6, y - 8);
             ctx.lineTo(x + 6, y - 8);
@@ -137,42 +140,48 @@ export class AvatarRenderer {
             ctx.fillRect(x - 6, y - 8, 12, 14);
         }
 
-        // Arms (Detailed)
+        // Neck
+        ctx.fillRect(x - 2, y - 10, 4, 4);
+    }
+
+    private drawArms(_c: Creature, rig: AvatarRig, anim: AnimState) {
+        const { ctx } = this;
+        const { x, y } = rig.anchors.torso;
+
+        ctx.fillStyle = '#ffdbac';
         const armSwing = anim.isMoving ? Math.sin(anim.time * 0.015) * 8 : 4;
 
-        // Left Arm
+        // Left Arm (Aligned with sleeve)
         ctx.save();
-        ctx.translate(x - 6, y - 6);
+        ctx.translate(x - 11, y - 6);
         ctx.rotate(armSwing * Math.PI / 180);
-        ctx.fillRect(-3, 0, 3, 10); // Arm
-        ctx.fillRect(-3, 10, 3, 2); // Hand
+        ctx.fillRect(-2, 0, 3, 8); // Upper Arm
+        ctx.fillRect(-2, 8, 4, 3); // Hand
         ctx.restore();
 
         // Right Arm
         ctx.save();
-        ctx.translate(x + 6, y - 6);
+        ctx.translate(x + 11, y - 6);
         ctx.rotate(-armSwing * Math.PI / 180);
-        ctx.fillRect(0, 0, 3, 10); // Arm
-        ctx.fillRect(0, 10, 3, 2); // Hand
+        ctx.fillRect(-1, 0, 3, 8); // Upper Arm
+        ctx.fillRect(-1, 8, 4, 3); // Hand
         ctx.restore();
-
-        // Neck
-        ctx.fillRect(x - 2, y - 10, 4, 4);
     }
 
     private drawFeet(_c: Creature, rig: AvatarRig, anim: AnimState) {
         const { ctx } = this;
         const { x, y } = rig.anchors.feet;
 
-        // Base skin color for feet
         ctx.fillStyle = '#ffdbac';
-
         const walkOffset = anim.isMoving ? Math.sin(anim.time * 0.015) * 3 : 0;
 
+        // Draw feet slightly higher to align with standard shoes logic
+        const footY = y + 8;
+
         // Left Foot
-        ctx.fillRect(x - 5, y + walkOffset, 4, 3);
+        ctx.fillRect(x - 6, footY + walkOffset, 5, 3);
         // Right Foot
-        ctx.fillRect(x + 1, y - walkOffset, 4, 3);
+        ctx.fillRect(x + 1, footY - walkOffset, 5, 3);
     }
 
     private drawHeadBase(c: Creature, rig: AvatarRig, _anim: AnimState) {

@@ -113,31 +113,31 @@ export const SHOES_ITEMS: CosmeticItem[] = [
         id: 'sneakers', slot: 'shoes', rarity: 'COMMON',
         draw: (ctx, rig, style, anim) => {
             const { x, y } = rig.anchors.feet;
-            // const separation = 4; // Unused
             const walkOffset = anim.isMoving ? Math.sin(anim.time * 0.015) * 3 : 0;
+            const footY = y + 8;
 
             ctx.fillStyle = style.primaryColor;
             // Left
-            ctx.fillRect(x - 8, y + 10 + walkOffset, 8, 4);
+            ctx.fillRect(x - 8, footY + walkOffset, 8, 5);
             // Right
-            ctx.fillRect(x + 2, y + 10 - walkOffset, 8, 4);
+            ctx.fillRect(x + 0, footY - walkOffset, 8, 5); // Aligned with right foot x+1
 
             // Laces detail
             ctx.fillStyle = 'white';
-            ctx.fillRect(x - 6, y + 10 + walkOffset, 4, 1);
-            ctx.fillRect(x + 4, y + 10 - walkOffset, 4, 1);
+            ctx.fillRect(x - 6, footY + walkOffset, 4, 1);
+            ctx.fillRect(x + 2, footY - walkOffset, 4, 1);
         }
     },
     {
         id: 'boots', slot: 'shoes', rarity: 'RARE',
         draw: (ctx, rig, style, anim) => {
             const { x, y } = rig.anchors.feet;
-            // const separation = 4; // Unused
             const walkOffset = anim.isMoving ? Math.sin(anim.time * 0.015) * 3 : 0;
+            const footY = y + 7;
 
             ctx.fillStyle = style.primaryColor;
-            ctx.fillRect(x - 8, y + 6 + walkOffset, 8, 8);
-            ctx.fillRect(x + 2, y + 6 - walkOffset, 8, 8);
+            ctx.fillRect(x - 8, footY + walkOffset, 8, 7);
+            ctx.fillRect(x + 0, footY - walkOffset, 8, 7);
         }
     }
 ];
