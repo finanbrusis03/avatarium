@@ -46,9 +46,11 @@ export class AvatarRenderer {
                 scale = 0.6 + easeOutBack * 0.4;
                 alpha = progress;
 
-                // Emit particles only once at the beginning
-                if (elapsed < 30) {
+                // Emit particles only once
+                if (!creature.hasEmittedSpawn) {
                     globalParticleSystem.emit(centerX, centerY, 12);
+                    creature.hasEmittedSpawn = true;
+                    console.log(`Spawn triggered for avatar ${creature.name}`);
                 }
             } else {
                 // End spawning state locally (the world loop should handle this but safety first)
@@ -264,12 +266,14 @@ export class AvatarRenderer {
 
     private drawNameTag(x: number, y: number, name: string) {
         const { ctx } = this;
-        ctx.fillStyle = 'rgba(0,0,0,0.5)';
-        ctx.roundRect(x - 20, y - 10, 40, 14, 4);
-        ctx.fill();
+        // Background removed as requested
 
         ctx.fillStyle = 'white';
-        ctx.font = '10px sans-serif';
+        // Stroke for readability if needed, but keeping it clean first
+        ctx.shadowBlur = 0;
+        ctx.shadowColor = 'transparent';
+
+        ctx.font = 'bold 12px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(name, x, y);
     }

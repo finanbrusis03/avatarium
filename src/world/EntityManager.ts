@@ -45,6 +45,7 @@ export interface Creature {
     spawnTime?: number;
     isSpawning?: boolean;
     spawnDuration?: number;
+    hasEmittedSpawn?: boolean;
 }
 
 export function createCreature(name: string, x: number, y: number, variant: number = 0, gender: 'M' | 'F' = 'M'): Creature {
@@ -70,7 +71,8 @@ export function createCreature(name: string, x: number, y: number, variant: numb
 
         isSpawning: true,
         spawnTime: Date.now(),
-        spawnDuration: 600
+        spawnDuration: 600,
+        hasEmittedSpawn: false
     };
 }
 
@@ -103,6 +105,7 @@ export function hydrateCreature(dbData: any): Creature {
 
         isSpawning: true,
         spawnTime: Date.now(),
-        spawnDuration: 600
+        spawnDuration: 600,
+        hasEmittedSpawn: false
     };
 }

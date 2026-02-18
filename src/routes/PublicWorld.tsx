@@ -186,7 +186,7 @@ export function PublicWorld() {
             // Convert time (ms) to seconds
             const timeSec = timeRef.current / 1000;
 
-            // Event Logic: "Noite das Luzes"
+            // Event Logic: "Noite"
             // Every 600s (10m), last for 120s (2m).
             const EVENT_CYCLE = 600;
             const EVENT_DURATION = 120;
@@ -218,7 +218,7 @@ export function PublicWorld() {
             if (banner) {
                 if (isEventActive) {
                     banner.style.display = 'block';
-                    banner.innerText = `✨ Noite das Luzes ✨ (${Math.ceil(EVENT_DURATION - cycleTime)}s)`;
+                    banner.innerText = `🌙 Noite (${Math.ceil(EVENT_DURATION - cycleTime)}s)`;
                 } else {
                     banner.style.display = 'none';
                 }

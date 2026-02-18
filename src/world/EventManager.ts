@@ -10,7 +10,7 @@ export interface WorldEvent {
 export const EVENTS: WorldEvent[] = [
     {
         id: 'LIGHTS_NIGHT',
-        name: 'Noite das Luzes',
+        name: 'Noite',
         description: 'Os vagalumes estão agitados!',
         duration: 30, // Short for testing
         active: false,
