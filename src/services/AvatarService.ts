@@ -1,6 +1,8 @@
 import { supabase } from '../lib/supabase';
 import { type Creature, createCreature, hydrateCreature } from '../world/EntityManager';
 import { normalizeHandle } from '../utils/normalizeHandle';
+import { WorldConfigService } from './WorldConfigService';
+import { stringToHash, generateUUID } from '../engine/Utils';
 
 export const AvatarService = {
     async getAll(): Promise<Creature[]> {
@@ -32,10 +34,20 @@ export const AvatarService = {
     },
 
     async create(name: string, x: number, y: number, variant: number, gender: 'M' | 'F' = 'M'): Promise<Creature | null> {
-        const newCreature = createCreature(name, x, y, variant, gender);
+        const normalizedName = normalizeHandle(name);
+        const newCreature = createCreature(normalizedName, x, y, variant, gender);
 
-        // v0.10: Generate random variant seed for visual uniqueness
-        const variantSeed = Math.random().toString(36).substring(7);
+        // Fetch world config to decide seed logic
+        const config = await WorldConfigService.getConfig();
+        let variantSeed = '';
+
+        if (config.visual_random_enabled !== false) {
+            // v0.10: Generate random variant seed for visual uniqueness
+            variantSeed = generateUUID().substring(0, 8);
+        } else {
+            // v0.14: Deterministic visual based on name hash
+            variantSeed = stringToHash(normalizedName).toString();
+        }
 
         const { error } = await supabase.from('creatures').insert({
             id: newCreature.id,

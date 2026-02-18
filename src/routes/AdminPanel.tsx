@@ -23,7 +23,8 @@ export function AdminPanel() {
         seed: 'default',
         night_interval_seconds: 600,
         night_duration_seconds: 120,
-        night_intensity: 0.85
+        night_intensity: 0.85,
+        visual_random_enabled: true
     });
     const [pendingConfig, setPendingConfig] = useState<WorldConfig>({
         width: 20,
@@ -31,7 +32,8 @@ export function AdminPanel() {
         seed: 'default',
         night_interval_seconds: 600,
         night_duration_seconds: 120,
-        night_intensity: 0.85
+        night_intensity: 0.85,
+        visual_random_enabled: true
     });
 
     // Initial auth check
@@ -202,8 +204,9 @@ export function AdminPanel() {
                                 />
                             </div>
                         </div>
-                        <div>
-                            <label style={{ display: 'block', fontSize: '11px', color: '#aaa', marginBottom: '3px' }}>Intensidade (0.0 - 1.0)</label>
+
+                        <div style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'block', fontSize: '11px', color: '#aaa', marginBottom: '3px' }}>Intensidade da Noite (0.0 - 1.0)</label>
                             <input
                                 type="number"
                                 step="0.05"
@@ -214,6 +217,23 @@ export function AdminPanel() {
                                 style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #444', background: '#333', color: 'white' }}
                             />
                         </div>
+                    </div>
+
+                    <div style={{ padding: '15px', background: '#2A2A2A', borderRadius: '4px', border: '1px solid #444', marginBottom: '20px' }}>
+                        <h4 style={{ marginTop: 0, color: '#4FC3F7' }}>🎨 Configuração Visual</h4>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', color: '#eee' }}>
+                            <input
+                                type="checkbox"
+                                checked={pendingConfig.visual_random_enabled}
+                                onChange={e => setPendingConfig(prev => ({ ...prev, visual_random_enabled: e.target.checked }))}
+                                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                            />
+                            <span>Visual Aleatório</span>
+                        </label>
+                        <p style={{ fontSize: '11px', color: '#666', marginTop: '10px', lineHeight: '1.4' }}>
+                            * Marcado: Novos avatares terão visuais únicos.<br />
+                            * Desmarcado: O visual será fixo baseado no nome.
+                        </p>
                     </div>
 
                     <button
@@ -293,6 +313,6 @@ export function AdminPanel() {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

@@ -12,3 +12,14 @@ export function generateUUID(): string {
         return v.toString(16);
     });
 }
+/**
+ * Simple string hashing function.
+ */
+export function stringToHash(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0;
+    }
+    return Math.abs(hash);
+}

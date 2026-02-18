@@ -7,6 +7,7 @@ export interface WorldConfig {
     night_interval_seconds?: number;
     night_duration_seconds?: number;
     night_intensity?: number;
+    visual_random_enabled?: boolean;
 }
 
 export const WorldConfigService = {
@@ -28,7 +29,8 @@ export const WorldConfigService = {
             seed: data.seed,
             night_interval_seconds: data.night_interval_seconds,
             night_duration_seconds: data.night_duration_seconds,
-            night_intensity: data.night_intensity
+            night_intensity: data.night_intensity,
+            visual_random_enabled: data.visual_random_enabled
         };
     },
 
@@ -42,7 +44,8 @@ export const WorldConfigService = {
                 seed: config.seed,
                 night_interval_seconds: config.night_interval_seconds,
                 night_duration_seconds: config.night_duration_seconds,
-                night_intensity: config.night_intensity
+                night_intensity: config.night_intensity,
+                visual_random_enabled: config.visual_random_enabled
             });
 
         if (error) {
