@@ -5,6 +5,7 @@ import { AvatarRenderer } from '../render/AvatarRenderer';
 import { Terrain, type Prop } from './Terrain';
 import { StructureManager, type Structure } from './StructureManager';
 import type { WorldConfig } from '../services/WorldConfigService';
+import { globalParticleSystem } from '../engine/ParticleSystem';
 
 export class WorldRenderer {
     private ctx: CanvasRenderingContext2D;
@@ -199,6 +200,10 @@ export class WorldRenderer {
 
         // 4. Ambient Particles
         this.drawAmbientEffects(ctx, time, lightLevel, activeEvent);
+
+        // 4.1 Global Particles (Spawn Poofs, etc)
+        globalParticleSystem.update(16); // Approx 60fps delta
+        globalParticleSystem.draw(ctx);
 
         ctx.restore(); // Restore transform for Overlay
 

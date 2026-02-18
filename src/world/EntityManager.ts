@@ -40,6 +40,11 @@ export interface Creature {
 
     // Animation State (Runtime only)
     animPhase: number;
+
+    // Spawn Effect (Runtime only)
+    spawnTime?: number;
+    isSpawning?: boolean;
+    spawnDuration?: number;
 }
 
 export function createCreature(name: string, x: number, y: number, variant: number = 0, gender: 'M' | 'F' = 'M'): Creature {
@@ -61,8 +66,11 @@ export function createCreature(name: string, x: number, y: number, variant: numb
         gender,
 
         temperament: rng.pick(temperaments),
-
         animPhase: rng.nextFloat() * Math.PI * 2,
+
+        isSpawning: true,
+        spawnTime: Date.now(),
+        spawnDuration: 600
     };
 }
 
@@ -92,5 +100,9 @@ export function hydrateCreature(dbData: any): Creature {
 
         temperament: rng.pick(temperaments),
         animPhase: rng.nextFloat() * Math.PI * 2,
+
+        isSpawning: true,
+        spawnTime: Date.now(),
+        spawnDuration: 600
     };
 }

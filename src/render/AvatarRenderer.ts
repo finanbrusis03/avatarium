@@ -2,6 +2,7 @@ import { type Camera } from '../engine/Camera';
 import { type Creature } from '../world/EntityManager';
 import { isoToScreen, TILE_WIDTH, TILE_HEIGHT } from '../engine/IsoMath';
 import type { AvatarRig, AnimState, CosmeticSlot } from '../cosmetics/Types';
+import { globalParticleSystem } from '../engine/ParticleSystem';
 
 export class AvatarRenderer {
     private ctx: CanvasRenderingContext2D;
@@ -11,6 +12,7 @@ export class AvatarRenderer {
     }
 
     public draw(creature: Creature, _camera: Camera, time: number) {
+        const { ctx } = this;
         // Interpolate position
         let renderX = creature.x;
         let renderY = creature.y;
@@ -23,6 +25,44 @@ export class AvatarRenderer {
         const p = isoToScreen(renderX, renderY);
         const centerX = p.x;
         const centerY = p.y; // Ground level
+
+        // Spawn Animation Logic
+        let scale = 1;
+        let alpha = 1;
+        const now = Date.now();
+
+        if (creature.isSpawning && creature.spawnTime) {
+            const duration = creature.spawnDuration || 600;
+            const elapsed = now - creature.spawnTime;
+            const progress = Math.min(1, elapsed / duration);
+
+            if (progress < 1) {
+                // easeOutBack
+                const c1 = 1.70158;
+                const c3 = c1 + 1;
+                const x = progress;
+                const easeOutBack = 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
+
+                scale = 0.6 + easeOutBack * 0.4;
+                alpha = progress;
+
+                // Emit particles only once at the beginning
+                if (elapsed < 30) {
+                    globalParticleSystem.emit(centerX, centerY, 12);
+                }
+            } else {
+                // End spawning state locally (the world loop should handle this but safety first)
+                creature.isSpawning = false;
+            }
+        }
+
+        this.ctx.save();
+        if (scale !== 1 || alpha !== 1) {
+            this.ctx.translate(centerX, centerY);
+            this.ctx.scale(scale, scale);
+            this.ctx.globalAlpha = alpha;
+            this.ctx.translate(-centerX, -centerY);
+        }
 
         // Animation State
         const isMoving = creature.moveProgress > 0 && creature.targetX !== undefined;
@@ -83,6 +123,8 @@ export class AvatarRenderer {
 
         // 5. Name Tag
         this.drawNameTag(centerX, baseY - 45, creature.name);
+
+        ctx.restore();
     }
 
     public drawHighlight(creature: Creature, type: 'selected' | 'hover') {
