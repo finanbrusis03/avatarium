@@ -210,27 +210,28 @@ export function AdminPanel() {
 
                 {/* List */}
                 <div style={{ flex: 2, minWidth: '400px' }}>
-                    <h3 style={{ marginTop: 0 }}>População ({creatures.length})</h3>
+                    <h3 style={{ marginTop: 0 }}>População ({creatures.filter(c => c.name !== 'Visitante').length})</h3>
                     <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid #333' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', background: '#222' }}>
                             <thead>
                                 <tr style={{ background: '#333', textAlign: 'left' }}>
                                     <th style={{ padding: '12px', borderBottom: '1px solid #444' }}>Nome</th>
-                                    <th style={{ padding: '12px', borderBottom: '1px solid #444' }}>Posição</th>
+                                    <th style={{ padding: '12px', borderBottom: '1px solid #444' }}>Gênero</th>
+                                    <th style={{ padding: '12px', borderBottom: '1px solid #444' }}>Variante</th>
                                     <th style={{ padding: '12px', borderBottom: '1px solid #444' }}>Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {creatures.map(c => (
+                                {creatures.filter(c => c.name !== 'Visitante').map(c => (
                                     <tr key={c.id} style={{ borderBottom: '1px solid #333' }}>
                                         <td style={{ padding: '12px' }}>
                                             <div style={{ fontWeight: 'bold' }}>{c.name}</div>
-                                            <div style={{ fontSize: '10px', color: '#666' }}>{c.id}</div>
-                                        </td>
-                                        <td style={{ padding: '12px' }}>{Math.round(c.x)}, {Math.round(c.y)}</td>
-                                        <td style={{ padding: '12px', display: 'flex', gap: '10px' }}>
-                                            <button onClick={() => handleFocus(c.name)} style={{ cursor: 'pointer', padding: '5px 10px', borderRadius: '4px', border: '1px solid #555', background: 'transparent', color: 'white' }}>Ver</button>
-                                            <button onClick={() => handleDelete(c.id)} style={{ cursor: 'pointer', padding: '5px 10px', borderRadius: '4px', border: 'none', background: '#E53935', color: 'white' }}>Excluir</button>
+                                            <td style={{ padding: '12px' }}>{c.gender === 'M' ? '♂ Masc' : '♀ Fem'}</td>
+                                            <td style={{ padding: '12px', fontFamily: 'monospace', fontSize: '11px' }}>{c.variantSeed || 'N/A'}</td>
+                                            <td style={{ padding: '12px', display: 'flex', gap: '10px' }}>
+                                                <button onClick={() => handleFocus(c.name)} style={{ cursor: 'pointer', padding: '5px 10px', borderRadius: '4px', border: '1px solid #555', background: 'transparent', color: 'white' }}>Ver</button>
+                                                <button onClick={() => handleDelete(c.id)} style={{ cursor: 'pointer', padding: '5px 10px', borderRadius: '4px', border: 'none', background: '#E53935', color: 'white' }}>Excluir</button>
+                                            </td>
                                         </td>
                                     </tr>
                                 ))}
