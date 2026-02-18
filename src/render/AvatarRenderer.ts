@@ -10,7 +10,7 @@ export class AvatarRenderer {
         this.ctx = ctx;
     }
 
-    public draw(creature: Creature, camera: Camera, time: number) {
+    public draw(creature: Creature, _camera: Camera, time: number) {
         // Unused variables: ctx is used via this.ctx in sub-methods, camera is unused here (used in world renderer transform)
         // We keep signature for potential future use or consistency, but remove unused locals.
 
@@ -153,7 +153,7 @@ export class AvatarRenderer {
         // We rely on 'bottom' item to draw legs for now to avoid z-fighting or double drawing
     }
 
-    private drawHeadBase(rig: AvatarRig, anim: AnimState) {
+    private drawHeadBase(rig: AvatarRig, _anim: AnimState) {
         const { ctx } = this;
         const { x, y } = rig.anchors.head;
 

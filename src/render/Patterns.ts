@@ -1,4 +1,4 @@
-export function applyPattern(ctx: CanvasRenderingContext2D, pattern: string, width: number, height: number, color: string) {
+export function applyPattern(ctx: CanvasRenderingContext2D, pattern: string, _width: number, _height: number, color: string) {
     if (pattern === 'dots') {
         const dotSize = 2;
         const spacing = 6;

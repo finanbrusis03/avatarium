@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 interface HUDMobileProps {
     onlineCount: number;
@@ -20,7 +20,7 @@ export function HUDMobile({
     onSearchChange,
     onSearchSubmit,
     searchError,
-    isSearching,
+    isSearching: _,
     followedName,
     onStopFollowing,
     onZoom,

@@ -1,23 +1,23 @@
-import type { CosmeticItem, CosmeticSlot, AvatarRig, CosmeticStyle, AnimState, Rarity } from './Types';
+import type { CosmeticItem, CosmeticSlot } from './Types';
 
 // --- Helper for drawing patterns ---
-function applyPattern(ctx: CanvasRenderingContext2D, style: CosmeticStyle, x: number, y: number, width: number, height: number) {
-    if (style.pattern === 'dots') {
-        ctx.fillStyle = 'rgba(255,255,255,0.3)';
-        for (let i = 0; i < 5; i++) {
-            ctx.beginPath();
-            ctx.arc(x + Math.random() * width, y + Math.random() * height, 1, 0, Math.PI * 2);
-            ctx.fill();
-        }
-    } else if (style.pattern === 'stripes') {
-        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x + width, y + height);
-        ctx.stroke();
-    }
-}
+// function applyPattern(ctx: CanvasRenderingContext2D, style: CosmeticStyle, x: number, y: number, width: number, height: number) {
+//     if (style.pattern === 'dots') {
+//         ctx.fillStyle = 'rgba(255,255,255,0.3)';
+//         for (let i = 0; i < 5; i++) {
+//             ctx.beginPath();
+//             ctx.arc(x + Math.random() * width, y + Math.random() * height, 1, 0, Math.PI * 2);
+//             ctx.fill();
+//         }
+//     } else if (style.pattern === 'stripes') {
+//         ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+//         ctx.lineWidth = 2;
+//         ctx.beginPath();
+//         ctx.moveTo(x, y);
+//         ctx.lineTo(x + width, y + height);
+//         ctx.stroke();
+//     }
+// }
 
 // --- CATALOG ---
 
@@ -113,7 +113,7 @@ export const SHOES_ITEMS: CosmeticItem[] = [
         id: 'sneakers', slot: 'shoes', rarity: 'COMMON',
         draw: (ctx, rig, style, anim) => {
             const { x, y } = rig.anchors.feet;
-            const separation = 4;
+            // const separation = 4; // Unused
             const walkOffset = anim.isMoving ? Math.sin(anim.time * 0.015) * 3 : 0;
 
             ctx.fillStyle = style.primaryColor;
@@ -132,7 +132,7 @@ export const SHOES_ITEMS: CosmeticItem[] = [
         id: 'boots', slot: 'shoes', rarity: 'RARE',
         draw: (ctx, rig, style, anim) => {
             const { x, y } = rig.anchors.feet;
-            const separation = 4;
+            // const separation = 4; // Unused
             const walkOffset = anim.isMoving ? Math.sin(anim.time * 0.015) * 3 : 0;
 
             ctx.fillStyle = style.primaryColor;
@@ -261,7 +261,7 @@ export const HAT_ITEMS: CosmeticItem[] = [
     },
     {
         id: 'crown', slot: 'hat', rarity: 'LEGENDARY',
-        draw: (ctx, rig, style) => {
+        draw: (ctx, rig, _style) => {
             const { x, y } = rig.anchors.hat;
             ctx.fillStyle = 'gold'; // Always gold? Or style.primaryColor?
             // Base
@@ -286,7 +286,7 @@ export const HAT_ITEMS: CosmeticItem[] = [
     },
     {
         id: 'halo', slot: 'hat', rarity: 'LEGENDARY',
-        draw: (ctx, rig, style, anim) => {
+        draw: (ctx, rig, _style, anim) => {
             const { x, y } = rig.anchors.hat;
             const float = Math.sin(anim.time * 0.005) * 3;
             ctx.strokeStyle = '#FFFFE0'; // Light yellow

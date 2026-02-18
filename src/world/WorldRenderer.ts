@@ -1,5 +1,5 @@
 import type { Camera } from '../engine/Camera';
-import { isoToScreen, TILE_WIDTH, TILE_HEIGHT } from '../engine/IsoMath';
+import { isoToScreen } from '../engine/IsoMath';
 import type { Creature } from './EntityManager';
 import { AvatarRenderer } from '../render/AvatarRenderer';
 import { Terrain, type Prop } from './Terrain';
@@ -270,7 +270,7 @@ export class WorldRenderer {
     }
 
     private drawStructure(ctx: CanvasRenderingContext2D, s: Structure) {
-        const p = isoToScreen(s.x, s.y);
+        // const p = isoToScreen(s.x, s.y); // Unused
 
         const wh = 70 + (s.type === 'HOUSE_MEDIUM' ? 30 : 0);
 

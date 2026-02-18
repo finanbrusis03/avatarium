@@ -1,6 +1,6 @@
 import { RNG } from '../utils/RNG';
-import { ALL_ITEMS, BACK_ITEMS, BOTTOM_ITEMS, FACE_ITEMS, HAT_ITEMS, SHOES_ITEMS, TOP_ITEMS } from './Catalog';
-import type { CosmeticItem, CosmeticSlot, CosmeticStyle, Loadout, Rarity } from './Types';
+import { ALL_ITEMS } from './Catalog';
+import type { CosmeticItem, CosmeticSlot, Loadout, Rarity } from './Types';
 
 // Palettes for procedural colors
 const PALETTES = [

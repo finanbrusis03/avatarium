@@ -1,4 +1,4 @@
-import React from 'react';
+// React import removed due to TS6133
 
 interface HUDDesktopProps {
     onlineCount: number;

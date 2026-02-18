@@ -9,8 +9,8 @@ export class CreatureRenderer {
         this.ctx = ctx;
     }
 
-    public draw(creature: Creature, camera: Camera, time: number) {
-        const { ctx } = this;
+    public draw(creature: Creature, _camera: Camera, time: number) {
+        // const { ctx } = this; // Unused local
 
         // Interpolate position
         let renderX = creature.x;
@@ -47,7 +47,7 @@ export class CreatureRenderer {
 
         this.drawShadow(centerX, p.y);
         this.drawBody(centerX, centerY, creature, isMoving, time);
-        this.drawFace(centerX, centerY, creature);
+        this.drawFace(centerX, centerY);
         this.drawAccessory(centerX, centerY, creature);
         this.drawNameTag(centerX, p.y - 50 - Math.abs(bob), creature.name);
     }
@@ -61,7 +61,7 @@ export class CreatureRenderer {
 
     private drawBody(x: number, y: number, c: Creature, moving: boolean, time: number) {
         const { ctx } = this;
-        ctx.fillStyle = c.primaryColor;
+        ctx.fillStyle = c.primaryColor || '#FFF';
 
         // Simple shape variations based on bodyType
         ctx.beginPath();
@@ -78,7 +78,7 @@ export class CreatureRenderer {
         ctx.fill();
 
         // Secondary color detail (belly/pattern)
-        ctx.fillStyle = c.secondaryColor;
+        ctx.fillStyle = c.secondaryColor || '#EEE';
         ctx.beginPath();
         ctx.arc(x, y + 5, 6, 0, Math.PI * 2);
         ctx.fill();
@@ -94,7 +94,7 @@ export class CreatureRenderer {
         }
     }
 
-    private drawFace(x: number, y: number, c: Creature) {
+    private drawFace(x: number, y: number) {
         const { ctx } = this;
         ctx.fillStyle = '#FFF';
 
@@ -114,7 +114,7 @@ export class CreatureRenderer {
 
     private drawAccessory(x: number, y: number, c: Creature) {
         const { ctx } = this;
-        ctx.fillStyle = c.secondaryColor;
+        ctx.fillStyle = c.secondaryColor || '#EEE';
 
         const type = c.accessoryType;
         if (type === 0) {

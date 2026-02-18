@@ -28,6 +28,11 @@ export interface Creature {
     // Visual Attributes (Deterministic)
     seed: number;
     loadout: Loadout;
+    variantSeed?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    bodyType?: number;
+    accessoryType?: number;
 
     // Behavior Attributes (Deterministic)
     temperament: Temperament;
