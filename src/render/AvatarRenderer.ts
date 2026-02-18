@@ -196,7 +196,7 @@ export class AvatarRenderer {
 
         // Simple Gender differentiation: Long hair for F, short for M (standard fallback)
         if (c.gender === 'F') {
-            ctx.fillStyle = '#4e342e'; // Brunette
+            ctx.fillStyle = '#F8E08E'; // Blonde (Loiro)
             ctx.beginPath();
             ctx.arc(x, y - 2, 10, Math.PI, Math.PI * 2); // Top hair
             ctx.fillRect(x - 10, y - 2, 4, 12); // Left side
