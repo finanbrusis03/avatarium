@@ -11,6 +11,7 @@ interface HUDDesktopProps {
     onStopFollowing: () => void;
     onZoom: (factor: number) => void;
     onResetZoom: () => void;
+    onOpenBulkAdd: () => void;
 }
 
 export function HUDDesktop({
@@ -23,7 +24,8 @@ export function HUDDesktop({
     followedName,
     onStopFollowing,
     onZoom,
-    onResetZoom
+    onResetZoom,
+    onOpenBulkAdd
 }: HUDDesktopProps) {
     return (
         <div style={{
@@ -86,6 +88,7 @@ export function HUDDesktop({
                 )}
 
                 <div style={{ display: 'flex', gap: '5px' }}>
+                    <button onClick={onOpenBulkAdd} style={{ ...btnStyle, background: '#4CAF50' }} title="Importar Lote">📥</button>
                     <button onClick={() => onZoom(1 / 1.2)} style={btnStyle}>-</button>
                     <button onClick={onResetZoom} style={btnStyle}>1x</button>
                     <button onClick={() => onZoom(1.2)} style={btnStyle}>+</button>

@@ -3,6 +3,7 @@ import { type Creature, createCreature, hydrateCreature } from '../world/EntityM
 import { normalizeHandle } from '../utils/normalizeHandle';
 import { WorldConfigService } from './WorldConfigService';
 import { stringToHash, generateUUID } from '../engine/Utils';
+import { SpawnManager } from '../world/SpawnManager';
 
 export const AvatarService = {
     async getAll(): Promise<Creature[]> {
@@ -68,6 +69,50 @@ export const AvatarService = {
 
         // Return with seed so local state is correct
         return { ...newCreature, variantSeed };
+    },
+
+    async createMany(creaturesData: { name: string, gender?: 'M' | 'F' }[]): Promise<Creature[]> {
+        const config = await WorldConfigService.getConfig();
+        const results: Creature[] = [];
+        const inserts: any[] = [];
+
+        for (const data of creaturesData) {
+            const normalizedName = normalizeHandle(data.name);
+            const { x, y } = SpawnManager.findValidSpawnPoint(config); // Need to import SpawnManager if not already
+            const roundedX = Math.round(x);
+            const roundedY = Math.round(y);
+            const gender = data.gender || 'M';
+
+            const newCreature = createCreature(normalizedName, roundedX, roundedY, 0, gender);
+
+            let variantSeed = '';
+            if (config.visual_random_enabled !== false) {
+                variantSeed = generateUUID().substring(0, 8);
+            } else {
+                variantSeed = stringToHash(normalizedName).toString();
+            }
+
+            inserts.push({
+                id: newCreature.id,
+                name: newCreature.name,
+                x: newCreature.x,
+                y: newCreature.y,
+                color: newCreature.color,
+                variant_seed: variantSeed,
+                gender: gender
+            });
+
+            results.push({ ...newCreature, variantSeed });
+        }
+
+        const { error } = await supabase.from('creatures').insert(inserts);
+
+        if (error) {
+            console.error('Error creating creatures in bulk:', error);
+            return [];
+        }
+
+        return results;
     },
 
     async delete(id: string): Promise<boolean> {

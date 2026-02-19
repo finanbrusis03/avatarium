@@ -11,6 +11,7 @@ import { normalizeHandle } from '../utils/normalizeHandle';
 import type { WorldConfig } from '../services/WorldConfigService';
 import { WorldConfigService } from '../services/WorldConfigService';
 import { SpawnManager } from '../world/SpawnManager';
+import { BulkAddModal } from '../ui/BulkAddModal';
 
 // UI Components
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -48,6 +49,7 @@ export function PublicWorld() {
     // World Config State
     const [worldConfig, setWorldConfig] = useState<WorldConfig>({ width: 20, height: 20, seed: 'default' });
     const [isConfigLoaded, setIsConfigLoaded] = useState(false);
+    const [isBulkAddOpen, setIsBulkAddOpen] = useState(false);
 
     // Sync Logic
     const syncCreatures = async () => {
@@ -309,6 +311,20 @@ export function PublicWorld() {
         setIsSearching(false);
     };
 
+    const handleBulkImport = async (avatars: { name: string, gender: 'M' | 'F' }[]) => {
+        setIsSearching(true);
+        const newCreatures = await AvatarService.createMany(avatars);
+        if (newCreatures.length > 0) {
+            setCreatures(prev => {
+                const prevIds = new Set(prev.map(c => c.id));
+                const filteredNew = newCreatures.filter(c => !prevIds.has(c.id))
+                    .map(c => ({ ...c, targetX: c.x, targetY: c.y }));
+                return [...prev, ...filteredNew];
+            });
+        }
+        setIsSearching(false);
+    };
+
     // --- Input Handlers (Mouse) ---
     const handleWheel = (e: React.WheelEvent) => {
         applyZoom(e.deltaY > 0 ? 0.9 : 1.1);
@@ -461,6 +477,7 @@ export function PublicWorld() {
                     onZoom={applyZoom}
                     onResetZoom={() => setCamera(prev => ({ ...prev, targetZoom: 1 }))}
                     onRecententer={() => setCamera(prev => ({ ...prev, targetX: 0, targetY: 0, followTargetId: null }))}
+                    onOpenBulkAdd={() => setIsBulkAddOpen(true)}
                 />
             ) : (
                 <HUDDesktop
@@ -474,6 +491,7 @@ export function PublicWorld() {
                     onStopFollowing={() => setCamera(prev => ({ ...prev, followTargetId: null }))}
                     onZoom={applyZoom}
                     onResetZoom={() => setCamera(prev => ({ ...prev, targetZoom: 1 }))}
+                    onOpenBulkAdd={() => setIsBulkAddOpen(true)}
                 />
             )}
 
@@ -498,6 +516,12 @@ export function PublicWorld() {
             >
                 ✨ Evento Ativo ✨
             </div>
+
+            <BulkAddModal
+                isOpen={isBulkAddOpen}
+                onClose={() => setIsBulkAddOpen(false)}
+                onImport={handleBulkImport}
+            />
 
             <canvas
                 ref={canvasRef}
