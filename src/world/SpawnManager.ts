@@ -20,25 +20,28 @@ export class SpawnManager {
 
         // Spiral/Ring search
         const maxRadius = 30;
+        const validPoints: { x: number, y: number }[] = [];
+
+        // Strategy: Collection valid points in small increments of radius
+        // Once we find enough points (e.g., 5-10), we pick one.
         for (let r = 0; r <= maxRadius; r++) {
-            // Test points in this ring
-            // Using a simple square-based ring search
             for (let dx = -r; dx <= r; dx++) {
                 for (let dy = -r; dy <= r; dy++) {
-                    // Only test the perimeter of the square for radii > 0
                     if (r > 0 && Math.abs(dx) !== r && Math.abs(dy) !== r) continue;
 
                     const tx = centerX + dx;
                     const ty = centerY + dy;
 
                     if (!isBlocked(tx, ty)) {
-                        // Found a spot! 
-                        // Add a tiny random offset within the tile so they don't stack perfectly
-                        return {
-                            x: tx,
-                            y: ty
-                        };
+                        validPoints.push({ x: tx, y: ty });
                     }
+                }
+            }
+
+            // If we found at least 10 valid points, or we are at radius 3, pick a random one
+            if (validPoints.length >= 10 || r >= 3) {
+                if (validPoints.length > 0) {
+                    return validPoints[Math.floor(Math.random() * validPoints.length)];
                 }
             }
         }
