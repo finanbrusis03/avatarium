@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { WorldConfigService, type WorldConfig } from '../services/WorldConfigService';
 import { generateUUID } from '../engine/Utils';
 import { SpawnManager } from '../world/SpawnManager';
+import { BulkAddModal } from '../ui/BulkAddModal';
 
 export function AdminPanel() {
     const navigate = useNavigate();
@@ -15,6 +16,7 @@ export function AdminPanel() {
     const [newName, setNewName] = useState('');
     const [variant, setVariant] = useState(0);
     const [gender, setGender] = useState<'M' | 'F'>('M');
+    const [isBulkAddOpen, setIsBulkAddOpen] = useState(false);
 
     // World Config State
     const [config, setConfig] = useState<WorldConfig>({
@@ -82,6 +84,11 @@ export function AdminPanel() {
 
         await AvatarService.create(newName, x, y, variant, gender);
         setNewName('');
+        loadData();
+    };
+
+    const handleBulkImport = async (avatars: { name: string, gender: 'M' | 'F' }[]) => {
+        await AvatarService.createMany(avatars);
         loadData();
     };
 
@@ -276,6 +283,15 @@ export function AdminPanel() {
                             Criar Avatar
                         </button>
                     </form>
+
+                    <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #333' }}>
+                        <button
+                            onClick={() => setIsBulkAddOpen(true)}
+                            style={{ width: '100%', padding: '10px', background: '#3F51B5', border: 'none', color: 'white', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold' }}
+                        >
+                            📥 Importar em Lote (CSV)
+                        </button>
+                    </div>
                 </div>
 
                 {/* List */}
@@ -313,6 +329,12 @@ export function AdminPanel() {
                     </div>
                 </div>
             </div>
+
+            <BulkAddModal
+                isOpen={isBulkAddOpen}
+                onClose={() => setIsBulkAddOpen(false)}
+                onImport={handleBulkImport}
+            />
         </div >
     );
 }
