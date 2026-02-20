@@ -18,7 +18,7 @@ export function BulkAddModal({ isOpen, onClose, onImport }: BulkAddModalProps) {
         if (!namesText.trim()) return;
 
         setIsProcessing(true);
-        const names = namesText.split(/[,\n]/)
+        const names = namesText.split(/[\r\n,]+/)
             .map(n => n.trim())
             .filter(n => n.length > 0)
             .map(name => ({ name, gender: 'M' as const }));
@@ -56,11 +56,11 @@ export function BulkAddModal({ isOpen, onClose, onImport }: BulkAddModalProps) {
                 </div>
 
                 <div style={bodyStyle}>
-                    <p style={labelStyle}>Adicione múltiplos nomes (separados por vírgula ou linha):</p>
+                    <p style={labelStyle}>Cole uma lista de nomes (um por linha ou separados por vírgula):</p>
                     <textarea
                         value={namesText}
                         onChange={(e) => setNamesText(e.target.value)}
-                        placeholder="Ex: @joao, @maria, @pedro..."
+                        placeholder="@usuario1\n@usuario2\n@usuario3"
                         style={textareaStyle}
                     />
 

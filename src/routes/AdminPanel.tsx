@@ -99,6 +99,19 @@ export function AdminPanel() {
         }
     };
 
+    const handleDeleteAll = async () => {
+        if (confirm('ATENÇÃO: Isso irá apagar TODOS os avatares. Esta ação é irreversível. Deseja continuar?')) {
+            const confirmText = prompt('Para confirmar a exclusão de TODOS os avatares, digite "APAGAR" em maiúsculas:');
+            if (confirmText === 'APAGAR') {
+                await AvatarService.deleteAll();
+                loadData();
+                alert('Todos os avatares foram apagados.');
+            } else if (confirmText !== null) {
+                alert('Operação cancelada. O texto digitado não confere.');
+            }
+        }
+    };
+
     const handleApplyConfig = async () => {
         if (confirm(`Salvar configurações do mundo?`)) {
             await WorldConfigService.updateConfig(pendingConfig);
@@ -137,7 +150,7 @@ export function AdminPanel() {
     }
 
     return (
-        <div style={{ padding: '20px', background: '#111', minHeight: '100vh', color: 'white', fontFamily: 'sans-serif' }}>
+        <div style={{ padding: '20px', background: '#111', height: '100vh', overflowY: 'auto', boxSizing: 'border-box', color: 'white', fontFamily: 'sans-serif' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #333', paddingBottom: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                     <h1 style={{ margin: 0 }}>Painel de Controle</h1>
@@ -290,6 +303,16 @@ export function AdminPanel() {
                             style={{ width: '100%', padding: '10px', background: '#3F51B5', border: 'none', color: 'white', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold' }}
                         >
                             📥 Importar em Lote (CSV)
+                        </button>
+                    </div>
+
+                    <div style={{ marginTop: '10px' }}>
+                        <button
+                            onClick={handleDeleteAll}
+                            style={{ width: '100%', padding: '10px', background: '#D32F2F', border: 'none', color: 'white', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold' }}
+                            title="Apaga todos os avatares registrados permanentemente"
+                        >
+                            ⚠️ Apagar Todos os Avatares (Perigo)
                         </button>
                     </div>
                 </div>
