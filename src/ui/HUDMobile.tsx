@@ -12,7 +12,6 @@ interface HUDMobileProps {
     onZoom: (factor: number) => void;
     onResetZoom: () => void;
     onRecententer: () => void; // Reset camera position
-    onOpenBulkAdd: () => void;
 }
 
 export function HUDMobile({
@@ -26,8 +25,7 @@ export function HUDMobile({
     onStopFollowing,
     onZoom,
     onResetZoom,
-    onRecententer,
-    onOpenBulkAdd
+    onRecententer
 }: HUDMobileProps) {
     const [isOpen, setIsOpen] = useState(false);
 
@@ -127,10 +125,6 @@ export function HUDMobile({
                             <button onClick={onResetZoom} style={bigBtnStyle}>1x</button>
                             <button onClick={() => onZoom(1.2)} style={bigBtnStyle}>+ Zoom</button>
                         </div>
-
-                        <button onClick={onOpenBulkAdd} style={{ ...bigBtnStyle, background: '#4CAF50' }}>
-                            📥 Importar em Lote (CSV)
-                        </button>
 
                         <button onClick={onRecententer} style={{ ...bigBtnStyle, background: '#444' }}>
                             Recentralizar Câmera
