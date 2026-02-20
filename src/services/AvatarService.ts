@@ -36,6 +36,14 @@ export const AvatarService = {
 
     async create(name: string, x: number, y: number, variant: number, gender: 'M' | 'F' = 'M'): Promise<Creature | null> {
         const normalizedName = normalizeHandle(name);
+
+        // Check for duplicates
+        const existing = await this.getByName(normalizedName);
+        if (existing) {
+            console.warn(`Creature ${normalizedName} already exists. Skipping creation.`);
+            return null; // or perhaps throw an error if you want to explicitly handle it in the UI
+        }
+
         const roundedX = Math.round(x);
         const roundedY = Math.round(y);
         const newCreature = createCreature(normalizedName, roundedX, roundedY, variant, gender);
@@ -76,8 +84,23 @@ export const AvatarService = {
         const results: Creature[] = [];
         const inserts: any[] = [];
 
+        // 1. Fetch all existing names to prevent duplicates
+        const existingCreatures = await this.getAll();
+        const existingNames = new Set(existingCreatures.map(c => c.name.toLowerCase()));
+
+        // 2. Keep track of what we're inserting *now* to prevent duplicates inside the batch itself
+        const inBatchNames = new Set<string>();
+
         for (const data of creaturesData) {
             const normalizedName = normalizeHandle(data.name);
+
+            // Skip if it already exists in the database OR if we already added it to the batch
+            if (existingNames.has(normalizedName.toLowerCase()) || inBatchNames.has(normalizedName.toLowerCase())) {
+                continue;
+            }
+
+            inBatchNames.add(normalizedName.toLowerCase());
+
             const { x, y } = SpawnManager.findValidSpawnPoint(config); // Need to import SpawnManager if not already
             const roundedX = Math.round(x);
             const roundedY = Math.round(y);
@@ -103,6 +126,11 @@ export const AvatarService = {
             });
 
             results.push({ ...newCreature, variantSeed });
+        }
+
+        if (inserts.length === 0) {
+            console.log('No new unique creatures to insert.');
+            return []; // All were duplicates
         }
 
         const { error } = await supabase.from('creatures').insert(inserts);
