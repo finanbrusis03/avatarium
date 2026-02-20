@@ -122,5 +122,14 @@ export const AvatarService = {
             return false;
         }
         return true;
+    },
+
+    async deleteAll(): Promise<boolean> {
+        const { error } = await supabase.from('creatures').delete().not('id', 'is', null);
+        if (error) {
+            console.error('Error deleting all creatures:', error);
+            return false;
+        }
+        return true;
     }
 };
