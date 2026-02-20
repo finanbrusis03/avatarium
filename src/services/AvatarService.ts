@@ -159,5 +159,14 @@ export const AvatarService = {
             return false;
         }
         return true;
+    },
+
+    async updateGender(id: string, gender: 'M' | 'F'): Promise<boolean> {
+        const { error } = await supabase.from('creatures').update({ gender }).eq('id', id);
+        if (error) {
+            console.error('Error updating gender:', error);
+            return false;
+        }
+        return true;
     }
 };

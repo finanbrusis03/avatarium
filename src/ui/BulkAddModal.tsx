@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { CSVParser } from '../utils/CSVParser';
+import { inferGender } from '../utils/inferGender';
 
 interface BulkAddModalProps {
     isOpen: boolean;
@@ -21,7 +22,7 @@ export function BulkAddModal({ isOpen, onClose, onImport }: BulkAddModalProps) {
         const names = namesText.split(/[\r\n,]+/)
             .map(n => n.trim())
             .filter(n => n.length > 0)
-            .map(name => ({ name, gender: 'M' as const }));
+            .map(name => ({ name, gender: inferGender(name) }));
 
         await onImport(names);
         setIsProcessing(false);

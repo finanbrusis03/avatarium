@@ -99,6 +99,12 @@ export function AdminPanel() {
         }
     };
 
+    const handleToggleGender = async (id: string, currentGender: 'M' | 'F') => {
+        const newGender = currentGender === 'M' ? 'F' : 'M';
+        await AvatarService.updateGender(id, newGender);
+        loadData();
+    };
+
     const handleDeleteAll = async () => {
         if (confirm('ATENÇÃO: Isso irá apagar TODOS os avatares. Esta ação é irreversível. Deseja continuar?')) {
             const confirmText = prompt('Para confirmar a exclusão de TODOS os avatares, digite "APAGAR" em maiúsculas:');
@@ -337,7 +343,18 @@ export function AdminPanel() {
                                             <div style={{ fontWeight: 'bold' }}>{c.name}</div>
                                             <div style={{ fontSize: '10px', color: '#666' }}>{c.id}</div>
                                         </td>
-                                        <td style={{ padding: '12px' }}>{c.gender === 'M' ? '♂ Masc' : '♀ Fem'}</td>
+                                        <td style={{ padding: '12px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span>{c.gender === 'M' ? '♂ Masc' : '♀ Fem'}</span>
+                                                <button
+                                                    onClick={() => handleToggleGender(c.id, c.gender)}
+                                                    style={{ cursor: 'pointer', padding: '2px 6px', fontSize: '10px', borderRadius: '4px', border: '1px solid #555', background: 'transparent', color: '#aaa' }}
+                                                    title="Alternar Gênero"
+                                                >
+                                                    Mudar
+                                                </button>
+                                            </div>
+                                        </td>
                                         <td style={{ padding: '12px', fontFamily: 'monospace', fontSize: '11px' }}>{c.variantSeed || 'N/A'}</td>
                                         <td style={{ padding: '12px' }}>
                                             <div style={{ display: 'flex', gap: '10px' }}>
