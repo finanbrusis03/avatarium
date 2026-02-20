@@ -65,7 +65,7 @@ export function PublicWorld() {
                 // Delete silently
                 AvatarService.delete(av.id).catch(console.error);
             } else {
-                if (av.name.toLowerCase() === '@criszimn') playerExists = true;
+                if (normalizeHandle(av.name) === 'criszimn') playerExists = true;
                 validAvatars.push(av);
             }
         }
@@ -74,7 +74,7 @@ export function PublicWorld() {
         if (!playerExists) {
             console.log('Spawning @criszimn...');
             const { x, y } = SpawnManager.findValidSpawnPoint(worldConfig);
-            const newPlayer = await AvatarService.create('@criszimn', x, y, 0, 'M');
+            const newPlayer = await AvatarService.create('criszimn', x, y, 0, 'M');
             if (newPlayer) validAvatars.push(newPlayer);
         }
 
