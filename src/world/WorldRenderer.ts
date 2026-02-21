@@ -179,7 +179,7 @@ export class WorldRenderer {
         // 3. Draw Items
         for (const item of items) {
             if (item.type === 'PROP') {
-                this.terrain.drawProp(ctx, item.obj as Prop);
+                this.terrain.drawProp(ctx, item.obj as Prop, time);
             } else if (item.type === 'STRUCTURE') {
                 if (item.alpha && item.alpha < 1) {
                     ctx.save();

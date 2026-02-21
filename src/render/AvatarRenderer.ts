@@ -173,18 +173,26 @@ export class AvatarRenderer {
         // Skin color
         ctx.fillStyle = '#ffdbac';
 
+        // Idle breathing scale modifier
+        const breathScale = _anim.isMoving ? 1 : 1 + Math.sin(_anim.time * 0.003 + Math.abs(x)) * 0.06;
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(1, breathScale);
+
         // Torso
         if (c.gender === 'F') {
             ctx.beginPath();
-            ctx.moveTo(x - 6, y - 8);
-            ctx.lineTo(x + 6, y - 8);
-            ctx.lineTo(x + 5, y + 6);
-            ctx.lineTo(x - 5, y + 6);
+            ctx.moveTo(-6, -8);
+            ctx.lineTo(6, -8);
+            ctx.lineTo(5, 6);
+            ctx.lineTo(-5, 6);
             ctx.closePath();
             ctx.fill();
         } else {
-            ctx.fillRect(x - 6, y - 8, 12, 14);
+            ctx.fillRect(-6, -8, 12, 14);
         }
+        ctx.restore();
 
         // Neck
         ctx.fillRect(x - 2, y - 10, 4, 4);
@@ -266,15 +274,29 @@ export class AvatarRenderer {
 
     private drawNameTag(x: number, y: number, name: string) {
         const { ctx } = this;
-        // Background removed as requested
+
+        ctx.font = 'bold 12px sans-serif';
+        const measure = ctx.measureText(name);
+        const w = measure.width + 16;
+        const h = 20;
+
+        // Rich background pill
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+        ctx.beginPath();
+        // Fallback for roundRect just in case, though modern browsers support it
+        if (ctx.roundRect) {
+            ctx.roundRect(x - w / 2, y - h + 5, w, h, 10);
+        } else {
+            ctx.rect(x - w / 2, y - h + 5, w, h);
+        }
+        ctx.fill();
 
         ctx.fillStyle = 'white';
-        // Stroke for readability if needed, but keeping it clean first
         ctx.shadowBlur = 0;
         ctx.shadowColor = 'transparent';
 
-        ctx.font = 'bold 12px sans-serif';
         ctx.textAlign = 'center';
+        // Base alignment tweak since it's inside a pill now
         ctx.fillText(name, x, y);
     }
 }

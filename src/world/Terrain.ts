@@ -168,24 +168,40 @@ export class Terrain {
         ctx.restore();
     }
 
-    public drawProp(ctx: CanvasRenderingContext2D, prop: Prop) {
+    public drawProp(ctx: CanvasRenderingContext2D, prop: Prop, time: number = 0) {
         const p = isoToScreen(prop.x, prop.y);
         const cx = p.x;
         const cy = p.y;
 
+        // Procedural wind calculation
+        const seed = prop.x * 153.1 + prop.y * 31.4;
+        const windBase = Math.sin(time * 0.001 + seed) * 0.5 + 0.5; // slow gust
+        const windMicro = Math.sin(time * 0.003 + seed * 2); // fast tremble
+        const swayAngle = (windBase * windMicro) * 0.05; // radians (about ~3 degrees max output)
+
+        ctx.save();
+        ctx.translate(cx, cy);
+
         if (prop.type === 'TREE') {
             ctx.fillStyle = '#5D4037';
-            ctx.fillRect(cx - 3, cy - 20, 6, 20); // Trunk
+            ctx.fillRect(-3, -20, 6, 20); // Trunk
+
+            // Sway the leaves from the top of the trunk
+            ctx.translate(0, -25);
+            ctx.rotate(swayAngle * 2);
 
             ctx.fillStyle = '#2E7D32'; // Leaves
             ctx.beginPath();
-            ctx.arc(cx, cy - 30, 15, 0, Math.PI * 2);
+            ctx.arc(0, -5, 15, 0, Math.PI * 2);
             ctx.fill();
         } else if (prop.type === 'BUSH') {
+            // Sway from the root
+            ctx.rotate(swayAngle * 1.5);
             ctx.fillStyle = '#4CAF50';
             ctx.beginPath();
-            ctx.arc(cx, cy - 5, 8, 0, Math.PI * 2);
+            ctx.arc(0, -5, 8, 0, Math.PI * 2);
             ctx.fill();
         }
+        ctx.restore();
     }
 }
