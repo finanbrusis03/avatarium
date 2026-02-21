@@ -77,12 +77,8 @@ export class WorldRenderer {
         ctx.scale(camera.zoom, camera.zoom);
         ctx.translate(-camera.x, -camera.y);
 
-        // 1. Draw Terrain
-        for (let x = 0; x < this.config.width; x++) {
-            for (let y = 0; y < this.config.height; y++) {
-                this.terrain.drawTile(ctx, x, y, time);
-            }
-        }
+        // 1. Draw Terrain (Full Layered Pass)
+        this.terrain.drawFullTerrain(ctx, 0, this.config.width - 1, 0, this.config.height - 1, time);
 
         // 2. Renderables
         interface RenderItem {

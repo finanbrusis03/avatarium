@@ -85,167 +85,210 @@ export class Terrain {
         return this.props.get(`${x},${y}`);
     }
 
-    public drawTile(ctx: CanvasRenderingContext2D, x: number, y: number, time: number = 0) {
-        const type = this.getTile(x, y);
-        const p = isoToScreen(x, y);
-
-        // Core colors
-        let color = '#4CAF50';
-
+    public getTileColor(type: TileType): string {
         switch (type) {
-            case 'WATER': color = '#1E88E5'; break;
-            case 'SAND': color = '#FBC02D'; break;
-            case 'DIRT': color = '#5D4037'; break;
-            case 'STONE': color = '#616161'; break;
-            case 'SNOW': color = '#BDBDBD'; break;
-            case 'ASPHALT': color = '#37474F'; break;
-            case 'GRASS': color = '#4CAF50'; break;
+            case 'WATER': return '#1E88E5'; // Changed to brighter blue for base
+            case 'SAND': return '#FBC02D';
+            case 'DIRT': return '#5D4037';
+            case 'STONE': return '#616161';
+            case 'SNOW': return '#BDBDBD';
+            case 'ASPHALT': return '#37474F';
+            case 'GRASS': return '#4CAF50';
+        }
+        return '#000';
+    }
+
+    public getTileTopColor(type: TileType): string {
+        switch (type) {
+            case 'WATER': return '#42A5F5';
+            case 'SAND': return '#FFEE58';
+            case 'DIRT': return '#795548';
+            case 'STONE': return '#757575';
+            case 'SNOW': return '#E0E0E0';
+            case 'ASPHALT': return '#455A64';
+            case 'GRASS': return '#66BB6A';
+        }
+        return '#000';
+    }
+
+    public drawFullTerrain(ctx: CanvasRenderingContext2D, startX: number, endX: number, startY: number, endY: number, time: number = 0) {
+        // Pass 0: Base Diamonds (Background Fallback for gaps & water depth)
+        for (let x = startX; x <= endX; x++) {
+            for (let y = startY; y <= endY; y++) {
+                const type = this.getTile(x, y);
+                const p = isoToScreen(x, y);
+                ctx.fillStyle = this.getTileColor(type);
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y - TILE_HEIGHT / 2);
+                ctx.lineTo(p.x + TILE_WIDTH / 2, p.y);
+                ctx.lineTo(p.x, p.y + TILE_HEIGHT / 2);
+                ctx.lineTo(p.x - TILE_WIDTH / 2, p.y);
+                ctx.fill();
+            }
         }
 
-        // FULL ORGANIC TERRAIN: Base Diamond to guarantee 100% grid coverage (no empty gaps)
-        // Then an overlapping ellipse for natural biomes to create smooth bleeding shores and fields.
-        const isRoadOrStone = type === 'ASPHALT' || type === 'STONE';
+        // Pass 1: Organic Biome Splats (Water -> Sand -> Dirt -> Grass)
+        const organicOrder: TileType[] = ['WATER', 'SAND', 'DIRT', 'GRASS'];
+        for (const targetType of organicOrder) {
+            ctx.fillStyle = this.getTileColor(targetType);
+            for (let x = startX; x <= endX; x++) {
+                for (let y = startY; y <= endY; y++) {
+                    if (this.getTile(x, y) === targetType) {
+                        const p = isoToScreen(x, y);
+                        ctx.beginPath();
+                        ctx.ellipse(p.x, p.y, (TILE_WIDTH / 2) * 1.35, (TILE_HEIGHT / 2) * 1.35, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+        }
 
-        ctx.fillStyle = color;
-        ctx.beginPath();
+        // Pass 2: Natural Textures (Waves, Tufts, Pebbles)
+        for (let x = startX; x <= endX; x++) {
+            for (let y = startY; y <= endY; y++) {
+                const type = this.getTile(x, y);
+                const p = isoToScreen(x, y);
 
-        if (isRoadOrStone) {
-            // Human structures and mountains keep the 5px 3D 
+                ctx.save();
+                const seed = x * 13.513 + y * 71.93;
+
+                if (type === 'GRASS') {
+                    ctx.fillStyle = '#4CAF50';
+                    ctx.globalAlpha = 0.8;
+                    ctx.beginPath();
+                    for (let i = 0; i < 4; i++) {
+                        const rx = p.x - (TILE_WIDTH * 0.3) + (Math.sin(seed + i * 1.1) * 0.5 + 0.5) * (TILE_WIDTH * 0.6);
+                        const ry = p.y - (TILE_HEIGHT * 0.3) + (Math.cos(seed + i * 2.2) * 0.5 + 0.5) * (TILE_HEIGHT * 0.6);
+                        ctx.moveTo(rx, ry);
+                        ctx.arc(rx, ry, 2 + (i % 2), 0, Math.PI * 2);
+                    }
+                    ctx.fill();
+                } else if (type === 'DIRT') {
+                    ctx.fillStyle = '#4E342E';
+                    ctx.globalAlpha = 0.5;
+                    ctx.beginPath();
+                    for (let i = 0; i < 4; i++) {
+                        const rx = p.x - (TILE_WIDTH * 0.3) + (Math.sin(seed * (i + 1) + 1.1) * 0.5 + 0.5) * (TILE_WIDTH * 0.6);
+                        const ry = p.y - (TILE_HEIGHT * 0.3) + (Math.cos(seed * (i + 2) + 2.2) * 0.5 + 0.5) * (TILE_HEIGHT * 0.6);
+                        ctx.moveTo(rx, ry);
+                        ctx.arc(rx, ry, 2.5, 0, Math.PI * 2);
+                    }
+                    ctx.fill();
+                } else if (type === 'SAND') {
+                    ctx.fillStyle = '#FBC02D';
+                    ctx.globalAlpha = 0.6;
+                    ctx.beginPath();
+                    for (let i = 0; i < 5; i++) {
+                        const rx = p.x - (TILE_WIDTH * 0.3) + (Math.sin(seed * i + 3.3) * 0.5 + 0.5) * (TILE_WIDTH * 0.6);
+                        const ry = p.y - (TILE_HEIGHT * 0.3) + (Math.cos(seed * i + 4.4) * 0.5 + 0.5) * (TILE_HEIGHT * 0.6);
+                        ctx.moveTo(rx, ry);
+                        ctx.arc(rx, ry, 1.5, 0, Math.PI * 2);
+                    }
+                    ctx.fill();
+                } else if (type === 'WATER') {
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                    ctx.lineWidth = 1.5;
+
+                    const animSpeed = 0.002;
+                    const wave1 = Math.sin(time * animSpeed + seed) * 0.5 + 0.5;
+                    const wave2 = Math.cos(time * animSpeed * 1.3 + seed * 2) * 0.5 + 0.5;
+
+                    const lineY1 = p.y - TILE_HEIGHT / 4 + wave1 * 5;
+                    ctx.beginPath();
+                    ctx.moveTo(p.x - TILE_WIDTH / 4, lineY1);
+                    ctx.lineTo(p.x + TILE_WIDTH / 4, lineY1);
+                    ctx.stroke();
+
+                    const lineY2 = p.y + TILE_HEIGHT / 4 - wave2 * 5;
+                    ctx.beginPath();
+                    ctx.moveTo(p.x - TILE_WIDTH / 3, lineY2);
+                    ctx.lineTo(p.x + TILE_WIDTH / 3, lineY2);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+        }
+
+        // Pass 3: Human & Raised Terrain (Asphalt, Stone)
+        const raisedTiles: { x: number, y: number, type: TileType, depth: number }[] = [];
+        for (let x = startX; x <= endX; x++) {
+            for (let y = startY; y <= endY; y++) {
+                const type = this.getTile(x, y);
+                if (type === 'ASPHALT' || type === 'STONE') {
+                    raisedTiles.push({ x, y, type, depth: x + y });
+                }
+            }
+        }
+
+        raisedTiles.sort((a, b) => a.depth - b.depth);
+
+        for (const t of raisedTiles) {
+            const p = isoToScreen(t.x, t.y);
+            ctx.fillStyle = this.getTileColor(t.type);
+
+            // Draw 5px 3D Block Wall
+            ctx.beginPath();
             ctx.moveTo(p.x - TILE_WIDTH / 2, p.y);
             ctx.lineTo(p.x, p.y + TILE_HEIGHT / 2);
             ctx.lineTo(p.x + TILE_WIDTH / 2, p.y);
             ctx.lineTo(p.x, p.y + TILE_HEIGHT / 2 + 5);
             ctx.lineTo(p.x - TILE_WIDTH / 2, p.y + 5);
             ctx.fill();
-        }
 
-        // EVERY tile gets the flat top diamond to seal the map
-        ctx.beginPath();
-        ctx.moveTo(p.x, p.y - TILE_HEIGHT / 2);
-        ctx.lineTo(p.x + TILE_WIDTH / 2, p.y);
-        ctx.lineTo(p.x, p.y + TILE_HEIGHT / 2);
-        ctx.lineTo(p.x - TILE_WIDTH / 2, p.y);
-        ctx.fill();
-
-        if (!isRoadOrStone) {
-            // NATURE BIOMES: Grass, Water, Sand, Dirt
-            // Scaled 1.4x to overlap neighbors and create bezier-like shorelines and hills
+            // Draw Top Face Diamond
+            const topColor = this.getTileTopColor(t.type);
+            ctx.fillStyle = topColor;
             ctx.beginPath();
-            ctx.ellipse(p.x, p.y, (TILE_WIDTH / 2) * 1.35, (TILE_HEIGHT / 2) * 1.35, 0, 0, Math.PI * 2);
+            ctx.moveTo(p.x, p.y - TILE_HEIGHT / 2);
+            ctx.lineTo(p.x + TILE_WIDTH / 2, p.y);
+            ctx.lineTo(p.x, p.y + TILE_HEIGHT / 2);
+            ctx.lineTo(p.x - TILE_WIDTH / 2, p.y);
             ctx.fill();
-        }
 
-        // --- Textures & Highlights ---
-        ctx.save();
+            // Draw Road Markings
+            if (t.type === 'ASPHALT') {
+                const tTop = this.getTile(t.x, t.y - 1);
+                const tRight = this.getTile(t.x + 1, t.y);
+                const tBottom = this.getTile(t.x, t.y + 1);
+                const tLeft = this.getTile(t.x - 1, t.y);
 
-        // SAFE FALLBACK: Removed ctx.clip() which could be breaking Safari/iOS rendering
-        // when applied to the isometric diamond path depending on context state.
-        const seed = x * 13.513 + y * 71.93;
-
-        if (type === 'GRASS') {
-            // ORGANIC TEXTURES: Replace square pixels with soft circular tufts
-            ctx.fillStyle = '#4CAF50';
-            ctx.globalAlpha = 0.8;
-            ctx.beginPath();
-            for (let i = 0; i < 4; i++) {
-                // Bounds scaled down to 60% of tile size to stay within diamond
-                const rx = p.x - (TILE_WIDTH * 0.3) + (Math.sin(seed + i * 1.1) * 0.5 + 0.5) * (TILE_WIDTH * 0.6);
-                const ry = p.y - (TILE_HEIGHT * 0.3) + (Math.cos(seed + i * 2.2) * 0.5 + 0.5) * (TILE_HEIGHT * 0.6);
-                ctx.moveTo(rx, ry);
-                ctx.arc(rx, ry, 2 + (i % 2), 0, Math.PI * 2); // Larger, softer circles
-            }
-            ctx.fill();
-        } else if (type === 'DIRT') {
-            // ORGANIC TEXTURES: Soft circular mud/rock pebbles
-            ctx.fillStyle = '#4E342E';
-            ctx.globalAlpha = 0.5;
-            ctx.beginPath();
-            for (let i = 0; i < 4; i++) {
-                const rx = p.x - (TILE_WIDTH * 0.3) + (Math.sin(seed * (i + 1) + 1.1) * 0.5 + 0.5) * (TILE_WIDTH * 0.6);
-                const ry = p.y - (TILE_HEIGHT * 0.3) + (Math.cos(seed * (i + 2) + 2.2) * 0.5 + 0.5) * (TILE_HEIGHT * 0.6);
-                ctx.moveTo(rx, ry);
-                ctx.arc(rx, ry, 2.5, 0, Math.PI * 2);
-            }
-            ctx.fill();
-        } else if (type === 'SAND') {
-            // ORGANIC TEXTURES: Soft circular sand grains
-            ctx.fillStyle = '#FBC02D';
-            ctx.globalAlpha = 0.6;
-            ctx.beginPath();
-            for (let i = 0; i < 5; i++) {
-                const rx = p.x - (TILE_WIDTH * 0.3) + (Math.sin(seed * i + 3.3) * 0.5 + 0.5) * (TILE_WIDTH * 0.6);
-                const ry = p.y - (TILE_HEIGHT * 0.3) + (Math.cos(seed * i + 4.4) * 0.5 + 0.5) * (TILE_HEIGHT * 0.6);
-                ctx.moveTo(rx, ry);
-                ctx.arc(rx, ry, 1.5, 0, Math.PI * 2); // Use arc instead of rect
-            }
-            ctx.fill();
-        } else if (type === 'ASPHALT') {
-            // Road Markings (Dashed Lines) - only if adjacent to another asphalt to form a continuous road
-            const tTop = this.getTile(x, y - 1);
-            const tRight = this.getTile(x + 1, y);
-            const tBottom = this.getTile(x, y + 1);
-            const tLeft = this.getTile(x - 1, y);
-
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-            ctx.lineWidth = 1.5;
-            ctx.setLineDash([4, 4]); // Dashed
-            ctx.beginPath();
-
-            // Draw horizontal road line if left/right is asphalt
-            if (tLeft === 'ASPHALT' || tRight === 'ASPHALT') {
-                ctx.moveTo(p.x - TILE_WIDTH / 4, p.y - TILE_HEIGHT / 4);
-                ctx.lineTo(p.x + TILE_WIDTH / 4, p.y + TILE_HEIGHT / 4);
-            }
-
-            // Draw vertical road line if top/bottom is asphalt
-            if (tTop === 'ASPHALT' || tBottom === 'ASPHALT') {
-                ctx.moveTo(p.x + TILE_WIDTH / 4, p.y - TILE_HEIGHT / 4);
-                ctx.lineTo(p.x - TILE_WIDTH / 4, p.y + TILE_HEIGHT / 4);
-            }
-
-            ctx.stroke();
-
-            // Intersection Dot
-            let asphaltCount = 0;
-            if (tTop === 'ASPHALT') asphaltCount++;
-            if (tRight === 'ASPHALT') asphaltCount++;
-            if (tBottom === 'ASPHALT') asphaltCount++;
-            if (tLeft === 'ASPHALT') asphaltCount++;
-
-            if (asphaltCount >= 3) { // Intersection
-                ctx.setLineDash([]);
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.save();
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4, 4]); // Dashed
                 ctx.beginPath();
-                ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-                ctx.fill();
+
+                // Horizontal road line
+                if (tLeft === 'ASPHALT' || tRight === 'ASPHALT') {
+                    ctx.moveTo(p.x - TILE_WIDTH / 4, p.y - TILE_HEIGHT / 4);
+                    ctx.lineTo(p.x + TILE_WIDTH / 4, p.y + TILE_HEIGHT / 4);
+                }
+
+                // Vertical road line
+                if (tTop === 'ASPHALT' || tBottom === 'ASPHALT') {
+                    ctx.moveTo(p.x + TILE_WIDTH / 4, p.y - TILE_HEIGHT / 4);
+                    ctx.lineTo(p.x - TILE_WIDTH / 4, p.y + TILE_HEIGHT / 4);
+                }
+
+                ctx.stroke();
+
+                // Intersection Dot
+                let asphaltCount = 0;
+                if (tTop === 'ASPHALT') asphaltCount++;
+                if (tRight === 'ASPHALT') asphaltCount++;
+                if (tBottom === 'ASPHALT') asphaltCount++;
+                if (tLeft === 'ASPHALT') asphaltCount++;
+
+                if (asphaltCount >= 3) { // Intersection
+                    ctx.setLineDash([]);
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
             }
-
-            ctx.setLineDash([]); // Reset dash for next draws
-            ctx.lineWidth = 1; // Reset line width
-        } else if (type === 'WATER') {
-            // Animated water shimmering lines (Safe line drawing)
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-            ctx.lineWidth = 1.5;
-
-            const animSpeed = 0.002;
-            const wave1 = Math.sin(time * animSpeed + seed) * 0.5 + 0.5;
-            const wave2 = Math.cos(time * animSpeed * 1.3 + seed * 2) * 0.5 + 0.5;
-
-            // Draw two horizontal shimmering lines
-            const lineY1 = p.y - TILE_HEIGHT / 4 + wave1 * 5;
-            ctx.beginPath();
-            ctx.moveTo(p.x - TILE_WIDTH / 4, lineY1);
-            ctx.lineTo(p.x + TILE_WIDTH / 4, lineY1);
-            ctx.stroke();
-
-            const lineY2 = p.y + TILE_HEIGHT / 4 - wave2 * 5;
-            ctx.beginPath();
-            ctx.moveTo(p.x - TILE_WIDTH / 3, lineY2);
-            ctx.lineTo(p.x + TILE_WIDTH / 3, lineY2);
-            ctx.stroke();
         }
-
-        ctx.restore();
     }
 
     public drawProp(ctx: CanvasRenderingContext2D, prop: Prop, time: number = 0) {
