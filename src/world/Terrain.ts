@@ -126,7 +126,27 @@ export class Terrain {
         // when applied to the isometric diamond path depending on context state.
         const seed = x * 13.513 + y * 71.93;
 
-        if (type === 'WATER') {
+        if (type === 'GRASS') {
+            ctx.fillStyle = '#4CAF50';
+            ctx.beginPath();
+            for (let i = 0; i < 4; i++) {
+                // Bounds scaled down to 60% of tile size to stay within diamond
+                const rx = p.x - (TILE_WIDTH * 0.3) + (Math.sin(seed + i * 1.1) * 0.5 + 0.5) * (TILE_WIDTH * 0.6);
+                const ry = p.y - (TILE_HEIGHT * 0.3) + (Math.cos(seed + i * 2.2) * 0.5 + 0.5) * (TILE_HEIGHT * 0.6);
+                ctx.moveTo(rx, ry);
+                ctx.arc(rx, ry, 1 + (i % 2), 0, Math.PI * 2);
+            }
+            ctx.fill();
+        } else if (type === 'SAND') {
+            ctx.fillStyle = '#FBC02D';
+            ctx.beginPath();
+            for (let i = 0; i < 5; i++) {
+                const rx = p.x - (TILE_WIDTH * 0.3) + (Math.sin(seed * i + 3.3) * 0.5 + 0.5) * (TILE_WIDTH * 0.6);
+                const ry = p.y - (TILE_HEIGHT * 0.3) + (Math.cos(seed * i + 4.4) * 0.5 + 0.5) * (TILE_HEIGHT * 0.6);
+                ctx.rect(rx, ry, 1, 1);
+            }
+            ctx.fill();
+        } else if (type === 'WATER') {
             // Animated water shimmering lines (Safe line drawing)
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
             ctx.lineWidth = 1.5;
