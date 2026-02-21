@@ -204,7 +204,7 @@ export class WorldRenderer {
                     this.drawBench(ctx, s);
                 } else {
                     // Houses and other generic structures
-                    this.drawStructure(ctx, s);
+                    this.drawStructure(ctx, s, lightLevel);
                 }
                 ctx.restore();
             }
@@ -333,7 +333,7 @@ export class WorldRenderer {
         ctx.restore();
     }
 
-    private drawStructure(ctx: CanvasRenderingContext2D, s: Structure) {
+    private drawStructure(ctx: CanvasRenderingContext2D, s: Structure, lightLevel: number) {
         // This method now specifically handles 'HOUSE_SMALL' and 'HOUSE_MEDIUM' (or generic buildings)
         // Other structure types like FOUNTAIN, LAMP_POST, BENCH are handled by their own methods.
 
@@ -435,7 +435,8 @@ export class WorldRenderer {
                 }
 
                 const winHash = Math.abs(hash * (Math.floor(u * 10) + 1) * (Math.floor(v * 10) + 1));
-                const isLit = (winHash % 100) > 55; // 45% of windows are lit
+                // Windows are only lit at night (lightLevel < 0.6)
+                const isLit = lightLevel < 0.6 && (winHash % 100) > 55;
 
                 ctx.fillStyle = isLit ? '#FFF59D' : '#1A232E'; // Neon yellow or dark glass
                 ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';

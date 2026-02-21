@@ -96,10 +96,10 @@ export class Terrain {
                     }
                 } else if (typeIdx === 1) {
                     // Beach Props on Sand
-                    if (val > 0.95 && y > this.height - 12) { // Mostly near the designated beach area
+                    if (val > 0.92 && y > this.height - 12) { // Increased density (from 0.95 to 0.92)
                         this.props.set(`${x},${y}`, {
-                            type: val > 0.98 ? 'UMBRELLA' : 'TOWEL',
-                            x, y, variant: Math.floor(val * 100) % 4 // More color variants
+                            type: val > 0.97 ? 'UMBRELLA' : 'TOWEL', // Slightly more umbrellas
+                            x, y, variant: Math.floor(val * 100) % 6 // More color variants
                         });
                     }
                 }
@@ -228,15 +228,47 @@ export class Terrain {
                     ctx.fill();
                 } else if (type === 'SAND') {
                     ctx.fillStyle = '#FBC02D';
-                    ctx.globalAlpha = 0.6;
+                    ctx.globalAlpha = 0.4;
                     ctx.beginPath();
-                    for (let i = 0; i < 5; i++) {
-                        const rx = p.x - (TILE_WIDTH * 0.3) + (Math.sin(seed * i + 3.3) * 0.5 + 0.5) * (TILE_WIDTH * 0.6);
-                        const ry = p.y - (TILE_HEIGHT * 0.3) + (Math.cos(seed * i + 4.4) * 0.5 + 0.5) * (TILE_HEIGHT * 0.6);
+                    // More and smaller sand grains for "beachy" feel
+                    for (let i = 0; i < 12; i++) {
+                        const rx = p.x - (TILE_WIDTH * 0.45) + (Math.sin(seed * i + 3.3) * 0.5 + 0.5) * (TILE_WIDTH * 0.9);
+                        const ry = p.y - (TILE_HEIGHT * 0.45) + (Math.cos(seed * i + 4.4) * 0.5 + 0.5) * (TILE_HEIGHT * 0.9);
                         ctx.moveTo(rx, ry);
-                        ctx.arc(rx, ry, 1.5, 0, Math.PI * 2);
+                        ctx.arc(rx, ry, Math.random() < 0.5 ? 0.8 : 1.2, 0, Math.PI * 2);
                     }
                     ctx.fill();
+                } else if (type === 'STONE') {
+                    const cx = Math.floor(this.width / 2);
+                    const cy = Math.floor(this.height / 2);
+                    const distToCenter = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+
+                    // Central Plaza Mosaic (Portuguese Pavement Style)
+                    if (distToCenter < 7) {
+                        ctx.save();
+                        ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
+                        ctx.lineWidth = 0.5;
+
+                        // Small irregular stones
+                        const stoneSeed = x * 1.5 + y * 2.1;
+                        for (let i = 0; i < 5; i++) {
+                            ctx.beginPath();
+                            const ox = Math.sin(stoneSeed + i) * (TILE_WIDTH * 0.3);
+                            const oy = Math.cos(stoneSeed + i * 1.5) * (TILE_HEIGHT * 0.3);
+                            ctx.arc(p.x + ox, p.y + oy, 1.5 + (i % 2), 0, Math.PI * 2);
+                            ctx.stroke();
+                        }
+
+                        // Decorative radial circles for better "urban plaza" look
+                        if (distToCenter < 1.0) {
+                            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                            ctx.lineWidth = 1.5;
+                            ctx.beginPath();
+                            ctx.ellipse(p.x, p.y, TILE_WIDTH * 0.3, TILE_HEIGHT * 0.3, 0, 0, Math.PI * 2);
+                            ctx.stroke();
+                        }
+                        ctx.restore();
+                    }
                 } else if (type === 'WATER') {
                     // Liquid animated shimmering ripples (curved bezier paths instead of straight lines)
                     ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
