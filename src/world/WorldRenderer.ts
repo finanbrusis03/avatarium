@@ -80,7 +80,7 @@ export class WorldRenderer {
         // 1. Draw Terrain
         for (let x = 0; x < this.config.width; x++) {
             for (let y = 0; y < this.config.height; y++) {
-                this.terrain.drawTile(ctx, x, y);
+                this.terrain.drawTile(ctx, x, y, time);
             }
         }
 
@@ -293,6 +293,16 @@ export class WorldRenderer {
         const wallLight = '#8D6E63';
         const roofColor = '#D32F2F';
         const roofLight = '#E57373';
+
+        // Ambient Occlusion / Base Shadow (Faux drop shadow on the ground)
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath();
+        ctx.moveTo(p4.x - 10, p4.y + 5);
+        ctx.lineTo(p3.x, p3.y + 10);
+        ctx.lineTo(p2.x + 10, p2.y + 5);
+        ctx.lineTo(p2.x, p2.y - 10); // taper off
+        ctx.lineTo(p4.x, p4.y - 10);
+        ctx.fill();
 
         // Left Wall
         ctx.fillStyle = wallDark;
