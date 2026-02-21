@@ -34,7 +34,6 @@ export class Terrain {
     private generate(seed: number) {
         const cx = Math.floor(this.width / 2);
         const cy = Math.floor(this.height / 2);
-        const beachY = this.height - 12; // Bottom 12 tiles form the coastline
 
         for (let x = 0; x < this.width; x++) {
             for (let y = 0; y < this.height; y++) {
@@ -46,18 +45,20 @@ export class Terrain {
                 // Distance from center for Plaza
                 const distToCenter = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
 
-                // Geographical overrides
-                if (distToCenter < 5) {
+                // Geographical overrides (Bottom-up: Water -> Sand -> Rest)
+                const waterEdge = this.height - 6;
+                const sandEdge = waterEdge - 10;
+
+                if (distToCenter < 6) {
                     typeIdx = 4; // Central Plaza (STONE)
-                } else if (y >= beachY) {
-                    typeIdx = 0; // Pure Water at the very edge
-                } else if (y >= beachY - 2 + (h * 4)) {
-                    // Wavy coastline sand mixing with the water
-                    typeIdx = 1; // Sand
+                } else if (y >= waterEdge) {
+                    typeIdx = 0; // Pure Water at the very bottom
+                } else if (y >= sandEdge + (h * 3)) {
+                    typeIdx = 1; // Wide Beach Sand
                 } else {
                     // Normal Noise Generation
-                    if (h < 0.2) typeIdx = 0; // Water
-                    else if (h < 0.25) typeIdx = 1; // Sand
+                    if (h < 0.15) typeIdx = 0; // Small inland ponds
+                    else if (h < 0.22) typeIdx = 1; // Small inland sand patches
                     else if (h < 0.55) typeIdx = 2; // Grass
                     else if (h < 0.70) typeIdx = 3; // Dirt
                     else if (h < 0.85) typeIdx = 4; // Stone
@@ -96,10 +97,10 @@ export class Terrain {
                     }
                 } else if (typeIdx === 1) {
                     // Beach Props on Sand
-                    if (val > 0.92 && y > this.height - 12) { // Increased density (from 0.95 to 0.92)
+                    if (val > 0.90 && y > this.height - 20) { // High density on the coastal strip
                         this.props.set(`${x},${y}`, {
-                            type: val > 0.97 ? 'UMBRELLA' : 'TOWEL', // Slightly more umbrellas
-                            x, y, variant: Math.floor(val * 100) % 6 // More color variants
+                            type: val > 0.96 ? 'UMBRELLA' : 'TOWEL',
+                            x, y, variant: Math.floor(val * 100) % 6
                         });
                     }
                 }
@@ -244,27 +245,27 @@ export class Terrain {
                     const distToCenter = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
 
                     // Central Plaza Mosaic (Portuguese Pavement Style)
-                    if (distToCenter < 7) {
+                    if (distToCenter < 8) {
                         ctx.save();
-                        ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
-                        ctx.lineWidth = 0.5;
+                        // Darker stones for more contrast
+                        ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)';
+                        ctx.lineWidth = 0.8;
 
-                        // Small irregular stones
                         const stoneSeed = x * 1.5 + y * 2.1;
-                        for (let i = 0; i < 5; i++) {
+                        for (let i = 0; i < 6; i++) {
                             ctx.beginPath();
-                            const ox = Math.sin(stoneSeed + i) * (TILE_WIDTH * 0.3);
-                            const oy = Math.cos(stoneSeed + i * 1.5) * (TILE_HEIGHT * 0.3);
-                            ctx.arc(p.x + ox, p.y + oy, 1.5 + (i % 2), 0, Math.PI * 2);
+                            const ox = Math.sin(stoneSeed + i) * (TILE_WIDTH * 0.35);
+                            const oy = Math.cos(stoneSeed + i * 1.5) * (TILE_HEIGHT * 0.35);
+                            ctx.arc(p.x + ox, p.y + oy, 1.8 + (i % 2), 0, Math.PI * 2);
                             ctx.stroke();
                         }
 
-                        // Decorative radial circles for better "urban plaza" look
-                        if (distToCenter < 1.0) {
-                            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-                            ctx.lineWidth = 1.5;
+                        // Decorative radial patterns
+                        if (distToCenter < 1.0 || (distToCenter > 3.9 && distToCenter < 4.1)) {
+                            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                            ctx.lineWidth = 2;
                             ctx.beginPath();
-                            ctx.ellipse(p.x, p.y, TILE_WIDTH * 0.3, TILE_HEIGHT * 0.3, 0, 0, Math.PI * 2);
+                            ctx.ellipse(p.x, p.y, TILE_WIDTH * 0.4, TILE_HEIGHT * 0.4, 0, 0, Math.PI * 2);
                             ctx.stroke();
                         }
                         ctx.restore();
