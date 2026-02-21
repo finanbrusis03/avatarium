@@ -112,22 +112,27 @@ export class Terrain {
     }
 
     public drawFullTerrain(ctx: CanvasRenderingContext2D, startX: number, endX: number, startY: number, endY: number, time: number = 0) {
-        // Pass 0: Base Diamonds (Background Fallback for gaps & water depth)
+        // Pass 0: Base Diamonds (Background Fallback for gaps, NOT for water)
         for (let x = startX; x <= endX; x++) {
             for (let y = startY; y <= endY; y++) {
                 const type = this.getTile(x, y);
-                const p = isoToScreen(x, y);
-                ctx.fillStyle = this.getTileColor(type);
-                ctx.beginPath();
-                ctx.moveTo(p.x, p.y - TILE_HEIGHT / 2);
-                ctx.lineTo(p.x + TILE_WIDTH / 2, p.y);
-                ctx.lineTo(p.x, p.y + TILE_HEIGHT / 2);
-                ctx.lineTo(p.x - TILE_WIDTH / 2, p.y);
-                ctx.fill();
+                // Do not draw square bases for water, water needs to be organic
+                if (type !== 'WATER') {
+                    const p = isoToScreen(x, y);
+                    ctx.fillStyle = this.getTileColor(type);
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y - TILE_HEIGHT / 2);
+                    ctx.lineTo(p.x + TILE_WIDTH / 2, p.y);
+                    ctx.lineTo(p.x, p.y + TILE_HEIGHT / 2);
+                    ctx.lineTo(p.x - TILE_WIDTH / 2, p.y);
+                    ctx.fill();
+                }
             }
         }
 
         // Pass 1: Organic Biome Splats (Water -> Sand -> Dirt -> Grass)
+        // WATER is back to index 0. This forces the lowest layer to be a rounded curved liquid 
+        // splat that spreads into the black void smoothly, avoiding pixelated shore edges at the world border.
         const organicOrder: TileType[] = ['WATER', 'SAND', 'DIRT', 'GRASS'];
         for (const targetType of organicOrder) {
             ctx.fillStyle = this.getTileColor(targetType);
@@ -186,23 +191,42 @@ export class Terrain {
                     }
                     ctx.fill();
                 } else if (type === 'WATER') {
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                    // Create a subtle deep water gradient effect over the diamond
+                    const grad = ctx.createLinearGradient(p.x, p.y - TILE_HEIGHT / 2, p.x, p.y + TILE_HEIGHT / 2);
+                    grad.addColorStop(0, 'rgba(30, 136, 229, 0.2)'); // Lighter reflection top
+                    grad.addColorStop(1, 'rgba(21, 101, 192, 0.6)'); // Deeper blue bottom
+                    ctx.fillStyle = grad;
+
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y - TILE_HEIGHT / 2);
+                    ctx.lineTo(p.x + TILE_WIDTH / 2, p.y);
+                    ctx.lineTo(p.x, p.y + TILE_HEIGHT / 2);
+                    ctx.lineTo(p.x - TILE_WIDTH / 2, p.y);
+                    ctx.fill();
+
+                    // Liquid animated shimmering ripples (curved bezier paths instead of straight lines)
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.lineCap = 'round';
                     ctx.lineWidth = 1.5;
 
                     const animSpeed = 0.002;
                     const wave1 = Math.sin(time * animSpeed + seed) * 0.5 + 0.5;
                     const wave2 = Math.cos(time * animSpeed * 1.3 + seed * 2) * 0.5 + 0.5;
 
-                    const lineY1 = p.y - TILE_HEIGHT / 4 + wave1 * 5;
+                    const widthBase = TILE_WIDTH / 3;
+
+                    // Ripple 1
+                    const lineY1 = p.y - TILE_HEIGHT / 5 + wave1 * 6;
                     ctx.beginPath();
-                    ctx.moveTo(p.x - TILE_WIDTH / 4, lineY1);
-                    ctx.lineTo(p.x + TILE_WIDTH / 4, lineY1);
+                    ctx.moveTo(p.x - widthBase, lineY1);
+                    ctx.quadraticCurveTo(p.x, lineY1 + 3, p.x + widthBase, lineY1);
                     ctx.stroke();
 
-                    const lineY2 = p.y + TILE_HEIGHT / 4 - wave2 * 5;
+                    // Ripple 2
+                    const lineY2 = p.y + TILE_HEIGHT / 5 - wave2 * 6;
                     ctx.beginPath();
-                    ctx.moveTo(p.x - TILE_WIDTH / 3, lineY2);
-                    ctx.lineTo(p.x + TILE_WIDTH / 3, lineY2);
+                    ctx.moveTo(p.x - widthBase * 1.2, lineY2);
+                    ctx.quadraticCurveTo(p.x, lineY2 - 3, p.x + widthBase * 1.2, lineY2);
                     ctx.stroke();
                 }
                 ctx.restore();

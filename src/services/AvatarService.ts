@@ -143,6 +143,23 @@ export const AvatarService = {
         return results;
     },
 
+    async updatePosition(id: string, x: number, y: number): Promise<boolean> {
+        const roundedX = Math.round(x);
+        const roundedY = Math.round(y);
+
+        const { error } = await supabase
+            .from('creatures')
+            .update({ x: roundedX, y: roundedY })
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error updating creature position:', error);
+            return false;
+        }
+
+        return true;
+    },
+
     async delete(id: string): Promise<boolean> {
         const { error } = await supabase.from('creatures').delete().eq('id', id);
         if (error) {

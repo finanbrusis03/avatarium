@@ -1,6 +1,7 @@
 import { Pathfinding } from './Pathfinding';
 import type { Point } from './Pathfinding';
 import type { Creature } from './EntityManager';
+import { AvatarService } from '../services/AvatarService';
 
 // Callback type for collision
 type CollisionCheck = (x: number, y: number) => boolean;
@@ -77,10 +78,12 @@ export function updateCreatures(creatures: Creature[], deltaTime: number, mapSiz
                         creature.path = [];
                         creature.state = 'IDLE';
                         creature.idleTimer = 1000;
+                        AvatarService.updatePosition(creature.id, creature.x, creature.y);
                     }
                 } else {
                     creature.state = 'IDLE';
                     creature.idleTimer = Math.random() * (IDLE_TIME_MAX - IDLE_TIME_MIN) + IDLE_TIME_MIN;
+                    AvatarService.updatePosition(creature.id, creature.x, creature.y);
                 }
             }
             return creature;

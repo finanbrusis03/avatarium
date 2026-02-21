@@ -83,16 +83,22 @@ export function PublicWorld() {
             return validAvatars.map(next => {
                 const existing = prevMap.get(next.id);
                 if (existing) {
-                    // Preserve local state (movement, pathfinding)
-                    // Only update cosmetic/meta info if changed
+                    // Pre-existing avatar.
+                    // If they are currently moving locally on our screen, do not snap them back yet.
+                    // If they are idle, safely sync their position to match the database truth.
+                    const isMoving = existing.state === 'MOVING' || (existing.path && existing.path.length > 0);
+
                     return {
                         ...existing,
-                        // Do NOT overwrite x, y, targetX, targetY with DB stale data
                         color: next.color,
-                        name: next.name
+                        name: next.name,
+                        // Only sync DB coordinates if we aren't interrupting an active local animation
+                        x: isMoving ? existing.x : next.x,
+                        y: isMoving ? existing.y : next.y,
+                        targetX: isMoving ? existing.targetX : undefined,
+                        targetY: isMoving ? existing.targetY : undefined
                     };
                 }
-                // New creature joined
                 // New creature joined (if legitimate)
                 return { ...next, targetX: next.x, targetY: next.y };
             });
