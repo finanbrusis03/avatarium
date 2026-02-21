@@ -89,37 +89,37 @@ export class Terrain {
         const type = this.getTile(x, y);
         const p = isoToScreen(x, y);
 
+        // Core colors
         let color = '#4CAF50';
-        let topColor = '#66BB6A';
 
-        // Richer, deeper color palette
         switch (type) {
-            case 'WATER': color = '#1565C0'; topColor = '#1E88E5'; break;
-            case 'SAND': color = '#F57F17'; topColor = '#FBC02D'; break;
-            case 'DIRT': color = '#4E342E'; topColor = '#5D4037'; break;
-            case 'STONE': color = '#424242'; topColor = '#616161'; break;
-            case 'SNOW': color = '#9E9E9E'; topColor = '#BDBDBD'; break;
-            case 'ASPHALT': color = '#263238'; topColor = '#37474F'; break;
-            case 'GRASS': color = '#2E7D32'; topColor = '#4CAF50'; break;
+            case 'WATER': color = '#1E88E5'; break;
+            case 'SAND': color = '#FBC02D'; break;
+            case 'DIRT': color = '#5D4037'; break;
+            case 'STONE': color = '#616161'; break;
+            case 'SNOW': color = '#BDBDBD'; break;
+            case 'ASPHALT': color = '#37474F'; break;
+            case 'GRASS': color = '#4CAF50'; break;
         }
 
-        ctx.lineWidth = 1;
-        // Strong line-art contour for the "SimCity / Modern" aesthetic
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
-        ctx.lineJoin = 'round';
+        // FULL ORGANIC TERRAIN: Base Diamond to guarantee 100% grid coverage (no empty gaps)
+        // Then an overlapping ellipse for natural biomes to create smooth bleeding shores and fields.
+        const isRoadOrStone = type === 'ASPHALT' || type === 'STONE';
 
-        // Side
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.moveTo(p.x - TILE_WIDTH / 2, p.y);
-        ctx.lineTo(p.x, p.y + TILE_HEIGHT / 2);
-        ctx.lineTo(p.x + TILE_WIDTH / 2, p.y);
-        ctx.lineTo(p.x, p.y + TILE_HEIGHT / 2 + 5);
-        ctx.lineTo(p.x - TILE_WIDTH / 2, p.y + 5);
-        ctx.fill();
 
-        // Top
-        ctx.fillStyle = topColor;
+        if (isRoadOrStone) {
+            // Human structures and mountains keep the 5px 3D 
+            ctx.moveTo(p.x - TILE_WIDTH / 2, p.y);
+            ctx.lineTo(p.x, p.y + TILE_HEIGHT / 2);
+            ctx.lineTo(p.x + TILE_WIDTH / 2, p.y);
+            ctx.lineTo(p.x, p.y + TILE_HEIGHT / 2 + 5);
+            ctx.lineTo(p.x - TILE_WIDTH / 2, p.y + 5);
+            ctx.fill();
+        }
+
+        // EVERY tile gets the flat top diamond to seal the map
         ctx.beginPath();
         ctx.moveTo(p.x, p.y - TILE_HEIGHT / 2);
         ctx.lineTo(p.x + TILE_WIDTH / 2, p.y);
@@ -127,33 +127,13 @@ export class Terrain {
         ctx.lineTo(p.x - TILE_WIDTH / 2, p.y);
         ctx.fill();
 
-        // SMART BORDERS: Only draw lines if neighboring tile is a DIFFERENT type or empty
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
-        ctx.lineWidth = 1.5;
-        ctx.lineJoin = 'round';
-
-        ctx.beginPath();
-        // Top-Left Edge
-        if (this.getTile(x, y - 1) !== type) {
-            ctx.moveTo(p.x - TILE_WIDTH / 2, p.y);
-            ctx.lineTo(p.x, p.y - TILE_HEIGHT / 2);
+        if (!isRoadOrStone) {
+            // NATURE BIOMES: Grass, Water, Sand, Dirt
+            // Scaled 1.4x to overlap neighbors and create bezier-like shorelines and hills
+            ctx.beginPath();
+            ctx.ellipse(p.x, p.y, (TILE_WIDTH / 2) * 1.35, (TILE_HEIGHT / 2) * 1.35, 0, 0, Math.PI * 2);
+            ctx.fill();
         }
-        // Top-Right Edge
-        if (this.getTile(x + 1, y) !== type) {
-            ctx.moveTo(p.x, p.y - TILE_HEIGHT / 2);
-            ctx.lineTo(p.x + TILE_WIDTH / 2, p.y);
-        }
-        // Bottom-Right Edge
-        if (this.getTile(x, y + 1) !== type) {
-            ctx.moveTo(p.x + TILE_WIDTH / 2, p.y);
-            ctx.lineTo(p.x, p.y + TILE_HEIGHT / 2);
-        }
-        // Bottom-Left Edge
-        if (this.getTile(x - 1, y) !== type) {
-            ctx.moveTo(p.x, p.y + TILE_HEIGHT / 2);
-            ctx.lineTo(p.x - TILE_WIDTH / 2, p.y);
-        }
-        ctx.stroke();
 
         // --- Textures & Highlights ---
         ctx.save();
@@ -173,6 +153,18 @@ export class Terrain {
                 const ry = p.y - (TILE_HEIGHT * 0.3) + (Math.cos(seed + i * 2.2) * 0.5 + 0.5) * (TILE_HEIGHT * 0.6);
                 ctx.moveTo(rx, ry);
                 ctx.arc(rx, ry, 2 + (i % 2), 0, Math.PI * 2); // Larger, softer circles
+            }
+            ctx.fill();
+        } else if (type === 'DIRT') {
+            // ORGANIC TEXTURES: Soft circular mud/rock pebbles
+            ctx.fillStyle = '#4E342E';
+            ctx.globalAlpha = 0.5;
+            ctx.beginPath();
+            for (let i = 0; i < 4; i++) {
+                const rx = p.x - (TILE_WIDTH * 0.3) + (Math.sin(seed * (i + 1) + 1.1) * 0.5 + 0.5) * (TILE_WIDTH * 0.6);
+                const ry = p.y - (TILE_HEIGHT * 0.3) + (Math.cos(seed * (i + 2) + 2.2) * 0.5 + 0.5) * (TILE_HEIGHT * 0.6);
+                ctx.moveTo(rx, ry);
+                ctx.arc(rx, ry, 2.5, 0, Math.PI * 2);
             }
             ctx.fill();
         } else if (type === 'SAND') {
