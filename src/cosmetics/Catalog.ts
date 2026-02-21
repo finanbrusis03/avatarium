@@ -41,22 +41,51 @@ export const BACK_ITEMS: CosmeticItem[] = [
         draw: (ctx, rig, style, anim) => {
             const { x, y } = rig.anchors.back;
             // Flapping anim
-            const flap = Math.sin(anim.time * 0.01) * 5;
+            const flap = Math.sin(anim.time * 0.01) * 3;
 
-            ctx.fillStyle = style.primaryColor;
-            // Left Wing
-            ctx.beginPath();
-            ctx.moveTo(x - 4, y);
-            ctx.quadraticCurveTo(x - 20, y - 10 + flap, x - 25, y + 10);
-            ctx.quadraticCurveTo(x - 10, y + 10, x - 4, y + 5);
-            ctx.fill();
+            ctx.save();
+            ctx.globalAlpha = 0.85;
 
-            // Right Wing
-            ctx.beginPath();
-            ctx.moveTo(x + 4, y);
-            ctx.quadraticCurveTo(x + 20, y - 10 + flap, x + 25, y + 10);
-            ctx.quadraticCurveTo(x + 10, y + 10, x + 4, y + 5);
-            ctx.fill();
+            // Feather Style
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 1;
+
+            // Draw function for individual wing
+            const drawWing = (side: number) => {
+                const wx = x + (side * 4);
+
+                // Wing Base Shape
+                ctx.fillStyle = style.primaryColor;
+                ctx.beginPath();
+                ctx.moveTo(wx, y);
+                ctx.quadraticCurveTo(wx + (side * 18), y - 12 + flap, wx + (side * 28), y + 2 + flap);
+                ctx.quadraticCurveTo(wx + (side * 15), y + 15, wx, y + 5);
+                ctx.fill();
+
+                // Feather Detail Lines
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                // Top layer feathers
+                ctx.moveTo(wx + (side * 5), y - 2);
+                ctx.lineTo(wx + (side * 22), y + 2 + flap);
+                // Mid layer
+                ctx.moveTo(wx + (side * 4), y + 3);
+                ctx.lineTo(wx + (side * 20), y + 8 + flap);
+                // Bottom layer
+                ctx.moveTo(wx + (side * 3), y + 7);
+                ctx.lineTo(wx + (side * 15), y + 12 + flap);
+                ctx.stroke();
+
+                // Subtle outline to separate from background
+                ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+            };
+
+            drawWing(-1); // Left
+            drawWing(1);  // Right
+
+            ctx.restore();
         }
     }
 ];
