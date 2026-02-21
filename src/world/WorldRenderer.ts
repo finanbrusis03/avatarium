@@ -298,7 +298,8 @@ export class WorldRenderer {
     private drawClouds(ctx: CanvasRenderingContext2D, time: number) {
         // Draw large moving shadows across the world
         const cloudCount = 6;
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.08)'; // Very subtle shadow
+        // Replaced rgba(0,0,0,0.08) with a solid blended color #51653e for Safari compatibility
+        ctx.fillStyle = '#51653e';
 
         const worldPixelWidth = this.config.width * 64 * 2; // Rough bounds
         const worldPixelHeight = this.config.height * 32 * 2;
@@ -340,7 +341,8 @@ export class WorldRenderer {
         const roofLight = '#E57373';
 
         // Ambient Occlusion / Base Shadow (Faux drop shadow on the ground)
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        // Replaced rgba(0,0,0,0.3) with a solid blended color for Safari compatibility
+        ctx.fillStyle = '#465636';
         ctx.beginPath();
         ctx.moveTo(p4.x - 10, p4.y + 5);
         ctx.lineTo(p3.x, p3.y + 10);

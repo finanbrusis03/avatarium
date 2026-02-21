@@ -117,33 +117,17 @@ export class Terrain {
         ctx.fill();
         ctx.stroke();
 
+        ctx.stroke();
+
         // --- Textures & Highlights ---
         ctx.save();
-        // Clip to the top face mathematically by clipping context
-        ctx.clip(); // We can clip to the current path (the top diamond)
 
-        const seed = x * 13.513 + y * 71.93; // Simple pseudorandom per tile
+        // SAFE FALLBACK: Removed ctx.clip() which could be breaking Safari/iOS rendering
+        // when applied to the isometric diamond path depending on context state.
+        const seed = x * 13.513 + y * 71.93;
 
-        if (type === 'GRASS') {
-            // Draw little grass specs
-            ctx.fillStyle = '#4CAF50'; // Darker grass color for bits
-            for (let i = 0; i < 4; i++) {
-                const rx = p.x - TILE_WIDTH / 2 + (Math.sin(seed + i * 1.1) * 0.5 + 0.5) * TILE_WIDTH;
-                const ry = p.y - TILE_HEIGHT / 2 + (Math.cos(seed + i * 2.2) * 0.5 + 0.5) * TILE_HEIGHT;
-                ctx.beginPath();
-                ctx.arc(rx, ry, 1 + (i % 2), 0, Math.PI * 2);
-                ctx.fill();
-            }
-        } else if (type === 'SAND') {
-            // Sand textural dots
-            ctx.fillStyle = '#FBC02D'; // Darker sand
-            for (let i = 0; i < 5; i++) {
-                const rx = p.x - TILE_WIDTH / 2 + (Math.sin(seed * i + 3.3) * 0.5 + 0.5) * TILE_WIDTH;
-                const ry = p.y - TILE_HEIGHT / 2 + (Math.cos(seed * i + 4.4) * 0.5 + 0.5) * TILE_HEIGHT;
-                ctx.fillRect(rx, ry, 1, 1);
-            }
-        } else if (type === 'WATER') {
-            // Animated water shimmering lines
+        if (type === 'WATER') {
+            // Animated water shimmering lines (Safe line drawing)
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
             ctx.lineWidth = 1.5;
 
