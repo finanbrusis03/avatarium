@@ -130,11 +130,11 @@ export class Terrain {
             }
         }
 
-        // Pass 1: Organic Biome Splats (Water -> Sand -> Dirt -> Grass)
+        // Pass 1: Organic Biome Splats (Water -> Sand -> Dirt -> Grass -> Stone)
         // WATER is first. It draws an oversized ellipse that smooths out the world border.
         // Overlapping sand/grass will "eat" the water's inner corners creating organic beaches, 
         // while the outer black canvas border gets rounded off by the water ellipse.
-        const organicOrder: TileType[] = ['WATER', 'SAND', 'DIRT', 'GRASS'];
+        const organicOrder: TileType[] = ['WATER', 'SAND', 'DIRT', 'GRASS', 'STONE'];
         for (const targetType of organicOrder) {
             for (let x = startX; x <= endX; x++) {
                 for (let y = startY; y <= endY; y++) {
@@ -146,13 +146,19 @@ export class Terrain {
                             grad.addColorStop(0, '#00BFFF'); // Bright Cyan Top
                             grad.addColorStop(1, '#0277BD'); // Deep Ocean Blue Bottom
                             ctx.fillStyle = grad;
+                            ctx.beginPath();
+                            ctx.ellipse(p.x, p.y, (TILE_WIDTH / 2) * 1.35, (TILE_HEIGHT / 2) * 1.35, 0, 0, Math.PI * 2);
+                            ctx.fill();
                         } else {
                             ctx.fillStyle = this.getTileColor(targetType);
-                        }
+                            ctx.beginPath();
+                            ctx.ellipse(p.x, p.y, (TILE_WIDTH / 2) * 1.35, (TILE_HEIGHT / 2) * 1.35, 0, 0, Math.PI * 2);
+                            ctx.fill();
 
-                        ctx.beginPath();
-                        ctx.ellipse(p.x, p.y, (TILE_WIDTH / 2) * 1.35, (TILE_HEIGHT / 2) * 1.35, 0, 0, Math.PI * 2);
-                        ctx.fill();
+                            // Remove any accidental stroke lines from previous iterations
+                            ctx.strokeStyle = 'transparent';
+                            ctx.lineWidth = 0;
+                        }
                     }
                 }
             }
@@ -230,12 +236,12 @@ export class Terrain {
             }
         }
 
-        // Pass 3: Human & Raised Terrain (Asphalt, Stone)
+        // Pass 3: Human Raised Terrain (Asphalt)
         const raisedTiles: { x: number, y: number, type: TileType, depth: number }[] = [];
         for (let x = startX; x <= endX; x++) {
             for (let y = startY; y <= endY; y++) {
                 const type = this.getTile(x, y);
-                if (type === 'ASPHALT' || type === 'STONE') {
+                if (type === 'ASPHALT') {
                     raisedTiles.push({ x, y, type, depth: x + y });
                 }
             }
@@ -245,26 +251,14 @@ export class Terrain {
 
         for (const t of raisedTiles) {
             const p = isoToScreen(t.x, t.y);
-            ctx.fillStyle = this.getTileColor(t.type);
 
-            // Draw 5px 3D Block Wall
-            ctx.beginPath();
-            ctx.moveTo(p.x - TILE_WIDTH / 2, p.y);
-            ctx.lineTo(p.x, p.y + TILE_HEIGHT / 2);
-            ctx.lineTo(p.x + TILE_WIDTH / 2, p.y);
-            ctx.lineTo(p.x, p.y + TILE_HEIGHT / 2 + 5);
-            ctx.lineTo(p.x - TILE_WIDTH / 2, p.y + 5);
-            ctx.fill();
-
-            // Draw Top Face Diamond
-            const topColor = this.getTileTopColor(t.type);
-            ctx.fillStyle = topColor;
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y - TILE_HEIGHT / 2);
-            ctx.lineTo(p.x + TILE_WIDTH / 2, p.y);
-            ctx.lineTo(p.x, p.y + TILE_HEIGHT / 2);
-            ctx.lineTo(p.x - TILE_WIDTH / 2, p.y);
-            ctx.fill();
+            if (t.type === 'ASPHALT') {
+                // Asphalt is a flat terrain feature, drawn on top like an organic splat
+                ctx.fillStyle = this.getTileTopColor('ASPHALT');
+                ctx.beginPath();
+                ctx.ellipse(p.x, p.y, (TILE_WIDTH / 2) * 1.35, (TILE_HEIGHT / 2) * 1.35, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
 
             // Draw Road Markings
             if (t.type === 'ASPHALT') {
@@ -293,19 +287,17 @@ export class Terrain {
 
                 ctx.stroke();
 
-                // Intersection Dot
+                // Intersection Processing
                 let asphaltCount = 0;
                 if (tTop === 'ASPHALT') asphaltCount++;
                 if (tRight === 'ASPHALT') asphaltCount++;
                 if (tBottom === 'ASPHALT') asphaltCount++;
                 if (tLeft === 'ASPHALT') asphaltCount++;
 
-                if (asphaltCount >= 3) { // Intersection
-                    ctx.setLineDash([]);
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-                    ctx.fill();
+                if (asphaltCount >= 3) {
+                    // It's an intersection. We shouldn't draw a gray circle that overlaps badly.
+                    // The main diamond is already drawn correctly. 
+                    // Let's just draw an intersection dashed square if needed, or leave it blank.
                 }
                 ctx.restore();
             }
