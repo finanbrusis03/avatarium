@@ -29,6 +29,18 @@ export class StructureManager {
         const noise = new Noise(seed); // Same seed as Terrain
         this.structures = [];
 
+        // 0. Hardcode the Central Plaza Fountain
+        const cx = Math.floor(w / 2);
+        const cy = Math.floor(h / 2);
+        this.structures.push({
+            id: 'central_fountain',
+            type: 'FOUNTAIN',
+            x: cx - 1, // Slight offset to center its 2x2 footprint in the plaza
+            y: cy - 1,
+            width: 2,
+            height: 2
+        });
+
         // 1. Place Houses (Organically along roads)
         const houseCount = Math.floor((w * h) / 100);
 

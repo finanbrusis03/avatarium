@@ -4,7 +4,7 @@ import { isoToScreen, TILE_WIDTH, TILE_HEIGHT } from '../engine/IsoMath';
 export type TileType = 'WATER' | 'SAND' | 'GRASS' | 'DIRT' | 'STONE' | 'SNOW' | 'ASPHALT';
 
 export interface Prop {
-    type: 'TREE' | 'BUSH' | 'ROCK' | 'FLOWER' | 'BONFIRE';
+    type: 'TREE' | 'BUSH' | 'ROCK' | 'FLOWER' | 'BONFIRE' | 'UMBRELLA' | 'TOWEL';
     x: number;
     y: number;
     variant: number;
@@ -32,6 +32,10 @@ export class Terrain {
     }
 
     private generate(seed: number) {
+        const cx = Math.floor(this.width / 2);
+        const cy = Math.floor(this.height / 2);
+        const beachY = this.height - 8; // Bottom 8 tiles form the coastline
+
         for (let x = 0; x < this.width; x++) {
             for (let y = 0; y < this.height; y++) {
                 const scale = 0.1;
@@ -39,20 +43,33 @@ export class Terrain {
 
                 let typeIdx = 2; // Grass
 
-                if (h < 0.2) typeIdx = 0; // Water
-                else if (h < 0.25) typeIdx = 1; // Sand
-                else if (h < 0.55) typeIdx = 2; // Grass
-                else if (h < 0.70) typeIdx = 3; // Dirt
-                else if (h < 0.85) typeIdx = 4; // Stone
-                else typeIdx = 5; // Snow
-                // Organic Meandering Roads
-                const isVerticalRoad = x % 10 === 0 && h > 0.1 && h < 0.7; // Avoid high mountais for roads
-                const isHorizontalRoad = y % 8 === 0 && h > 0.1 && h < 0.7;
+                // Distance from center for Plaza
+                const distToCenter = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
 
-                // Add noise disruption to roads so they aren't perfect grids
+                // Geographical overrides
+                if (distToCenter < 5) {
+                    typeIdx = 4; // Central Plaza (STONE)
+                } else if (y >= beachY) {
+                    typeIdx = 0; // Pure Water at the very edge
+                } else if (y >= beachY - 2 + (h * 4)) {
+                    // Wavy coastline sand mixing with the water
+                    typeIdx = 1; // Sand
+                } else {
+                    // Normal Noise Generation
+                    if (h < 0.2) typeIdx = 0; // Water
+                    else if (h < 0.25) typeIdx = 1; // Sand
+                    else if (h < 0.55) typeIdx = 2; // Grass
+                    else if (h < 0.70) typeIdx = 3; // Dirt
+                    else if (h < 0.85) typeIdx = 4; // Stone
+                    else typeIdx = 5; // Snow
+                }
+
+                // Organic Meandering Roads (Do not place roads on Plaza or Beach)
+                const isVerticalRoad = x % 10 === 0 && h > 0.1 && h < 0.7;
+                const isHorizontalRoad = y % 8 === 0 && h > 0.1 && h < 0.7;
                 const roadNoise = this.noise.noise2D(x * 0.5, y * 0.5);
 
-                if ((isVerticalRoad || isHorizontalRoad) && typeIdx !== 0 && typeIdx !== 1) { // Not on water/sand
+                if ((isVerticalRoad || isHorizontalRoad) && typeIdx !== 0 && typeIdx !== 1 && typeIdx !== 4) {
                     if (roadNoise > 0.3) {
                         typeIdx = 6; // Asphalt
                     }
@@ -61,14 +78,23 @@ export class Terrain {
                 this.tiles[y * this.width + x] = typeIdx;
 
                 // Props
-                if (typeIdx === 2 || typeIdx === 3) {
-                    const propHash = Math.sin(x * 12.9898 + y * 78.233 + seed) * 43758.5453;
-                    const val = propHash - Math.floor(propHash);
+                const propHash = Math.sin(x * 12.9898 + y * 78.233 + seed) * 43758.5453;
+                const val = propHash - Math.floor(propHash);
 
+                if (typeIdx === 2 || typeIdx === 3) {
+                    // Forest Props on Grass/Dirt
                     if (val > 0.92) {
                         this.props.set(`${x},${y}`, {
                             type: val > 0.97 ? 'TREE' : 'BUSH',
                             x, y, variant: Math.floor(val * 100) % 3
+                        });
+                    }
+                } else if (typeIdx === 1) {
+                    // Beach Props on Sand
+                    if (val > 0.95 && y > this.height - 12) { // Mostly near the designated beach area
+                        this.props.set(`${x},${y}`, {
+                            type: val > 0.98 ? 'UMBRELLA' : 'TOWEL',
+                            x, y, variant: Math.floor(val * 100) % 4 // More color variants
                         });
                     }
                 }
@@ -336,6 +362,65 @@ export class Terrain {
             ctx.fillStyle = '#4CAF50';
             ctx.beginPath();
             ctx.arc(0, -5, 8, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (prop.type === 'UMBRELLA') {
+            const colors = ['#F44336', '#2196F3', '#4CAF50', '#FFEB3B'];
+            const color = colors[prop.variant % colors.length];
+
+            ctx.fillStyle = '#E0E0E0'; // Pole
+            ctx.fillRect(-1, -25, 2, 25);
+
+            // Sway umbrella top
+            ctx.translate(0, -20);
+            ctx.rotate(swayAngle * 3);
+
+            // Umbrella canopy
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(0, 0, 12, Math.PI, 0); // half circle
+            ctx.fill();
+
+            // White stripes
+            ctx.fillStyle = '#FFF';
+            ctx.beginPath();
+            ctx.moveTo(0, -12);
+            ctx.lineTo(-4, 0);
+            ctx.lineTo(-2, 0);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(0, -12);
+            ctx.lineTo(4, 0);
+            ctx.lineTo(2, 0);
+            ctx.fill();
+
+            // Little top knob
+            ctx.fillStyle = '#E0E0E0';
+            ctx.beginPath();
+            ctx.arc(0, -12, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (prop.type === 'TOWEL') {
+            const colors = ['#E91E63', '#00BCD4', '#FF9800', '#9C27B0'];
+            const color = colors[prop.variant % colors.length];
+
+            // Towel is a flat diamond on the ground
+            const tw = 16;
+            const th = 8;
+
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(0, -th);
+            ctx.lineTo(tw, 0);
+            ctx.lineTo(0, th);
+            ctx.lineTo(-tw, 0);
+            ctx.fill();
+
+            // White stripes on towel
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.beginPath();
+            ctx.moveTo(tw * 0.4, -th * 0.4);
+            ctx.lineTo(tw * 0.8, -th * 0.0);
+            ctx.lineTo(tw * 0.4, th * 0.4);
+            ctx.lineTo(tw * 0.0, th * 0.0);
             ctx.fill();
         }
         ctx.restore();

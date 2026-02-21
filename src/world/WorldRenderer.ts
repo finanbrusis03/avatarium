@@ -180,12 +180,12 @@ export class WorldRenderer {
                 if (item.alpha && item.alpha < 1) {
                     ctx.save();
                     ctx.globalAlpha = item.alpha;
-                    this.drawStructure(ctx, item.obj as Structure);
+                    this.drawStructure(ctx, item.obj as Structure, time);
                     ctx.restore();
                 } else {
                     ctx.save()
                     ctx.globalAlpha = 1.0;
-                    this.drawStructure(ctx, item.obj as Structure);
+                    this.drawStructure(ctx, item.obj as Structure, time);
                     ctx.restore()
                 }
             } else if (item.type === 'LAMP_POST') {
@@ -322,7 +322,7 @@ export class WorldRenderer {
         ctx.restore();
     }
 
-    private drawStructure(ctx: CanvasRenderingContext2D, s: Structure) {
+    private drawStructure(ctx: CanvasRenderingContext2D, s: Structure, time: number) {
         const p2 = isoToScreen(s.x + s.width - 0.5, s.y - 0.5); // Right
         const p3 = isoToScreen(s.x + s.width - 0.5, s.y + s.height - 0.5); // Bottom/Front
         const p4 = isoToScreen(s.x - 0.5, s.y + s.height - 0.5); // Left
@@ -371,7 +371,56 @@ export class WorldRenderer {
         const palMed = palettesMed[Math.abs(hash) % palettesMed.length];
         const palSmall = palettesSmall[Math.abs(hash) % palettesSmall.length];
 
-        if (!isHouse) {
+        if (s.type === 'FOUNTAIN') {
+            // Isometric center of the 2x2 fountain
+            const center = isoToScreen(s.x + s.width / 2 - 0.5, s.y + s.height / 2 - 0.5);
+            const cx = center.x;
+            const cy = center.y;
+
+            // Draw Base Pool (Stone)
+            ctx.fillStyle = '#757575';
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, 35, 18, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Inner Pool (Water)
+            ctx.fillStyle = '#0288D1';
+            ctx.beginPath();
+            ctx.ellipse(cx, cy - 2, 30, 15, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Animated Water Rings
+            const ringScale = (time * 0.05) % 15;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy - 2, ringScale * 2, ringScale, 0, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Center Pedestal
+            ctx.fillStyle = '#9E9E9E';
+            ctx.fillRect(cx - 5, cy - 20, 10, 20);
+            ctx.strokeRect(cx - 5, cy - 20, 10, 20);
+
+            // Water Spout (Animated)
+            const spoutHeight = 15 + Math.sin(time * 0.01) * 3;
+            ctx.fillStyle = 'rgba(129, 212, 250, 0.8)'; // Light blue translucent
+
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - 20);
+            ctx.quadraticCurveTo(cx - 10, cy - 20 - spoutHeight, cx - 15, cy - 5);
+            ctx.quadraticCurveTo(cx - 5, cy - 20, cx, cy - 20);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - 20);
+            ctx.quadraticCurveTo(cx + 10, cy - 20 - spoutHeight, cx + 15, cy - 5);
+            ctx.quadraticCurveTo(cx + 5, cy - 20, cx, cy - 20);
+            ctx.fill();
+
+            return; // Done
+        } else if (!isHouse) {
             // ==================
             // COMMERCIAL BUILDING (HOUSE_MEDIUM)
             // ==================
