@@ -29,16 +29,16 @@ export class StructureManager {
         const noise = new Noise(seed); // Same seed as Terrain
         this.structures = [];
 
-        // 1. Place Houses
-        const houseCount = Math.floor((w * h) / 100); // 1 house per 100 tiles roughly
+        // 1. Place Houses (Organically along roads)
+        const houseCount = Math.floor((w * h) / 100);
 
         let attempts = 0;
         let placed = 0;
-        const MAX_ATTEMPTS = houseCount * 5;
+        const MAX_ATTEMPTS = houseCount * 10;
 
         while (placed < houseCount && attempts < MAX_ATTEMPTS) {
             attempts++;
-            const type = rng.nextFloat() > 0.5 ? 'HOUSE_SMALL' : 'HOUSE_MEDIUM';
+            const type = rng.nextFloat() > 0.7 ? 'HOUSE_MEDIUM' : 'HOUSE_SMALL'; // More small houses now
             const width = type === 'HOUSE_SMALL' ? 2 : 3;
             const height = 2;
 
@@ -52,22 +52,43 @@ export class StructureManager {
             // Check Overlap
             if (this.checkOverlap(x, y, width, height)) continue;
 
-            // Check Water (Noise Check)
-            let isWater = false;
+            // Check Water and Mountains (Noise Check)
+            let isWaterOrMountain = false;
+            let roadScore = 0; // Check proximity to organic roads
+
             // Scan footprint + margin
-            for (let dx = 0; dx < width; dx++) {
-                for (let dy = 0; dy < height; dy++) {
-                    const scale = 0.1; // MUST match Terrain.ts
-                    const hVal = noise.noise2D((x + dx) * scale, (y + dy) * scale);
-                    if (hVal < 0.2) { // Water Threshold
-                        isWater = true;
+            for (let dx = -1; dx <= width + 1; dx++) {
+                for (let dy = -1; dy <= height + 1; dy++) {
+                    const checkX = x + dx;
+                    const checkY = y + dy;
+
+                    const scale = 0.1;
+                    const hVal = noise.noise2D(checkX * scale, checkY * scale);
+                    if (hVal < 0.2 || hVal > 0.7) { // Too low (water) or too high (mountain)
+                        isWaterOrMountain = true;
                         break;
                     }
+
+                    // Is this nearby tile an organic road?
+                    const isVerticalRoad = checkX % 10 === 0;
+                    const isHorizontalRoad = checkY % 8 === 0;
+                    const roadNoise = noise.noise2D(checkX * 0.5, checkY * 0.5);
+
+                    if ((isVerticalRoad || isHorizontalRoad) && roadNoise > 0.3) {
+                        // Only score if it's adjacent, not directly ON the road (houses shouldn't block roads)
+                        if (dx >= 0 && dx < width && dy >= 0 && dy < height) {
+                            isWaterOrMountain = true; // House is IN the road. Invalid.
+                            break;
+                        } else {
+                            roadScore++; // House is NEXT to a road
+                        }
+                    }
                 }
-                if (isWater) break;
+                if (isWaterOrMountain) break;
             }
 
-            if (isWater) continue;
+            // We only place a house if the terrain is valid AND it's near an organic road
+            if (isWaterOrMountain || roadScore === 0) continue;
 
             this.structures.push({
                 id: `struct_h_${placed}`,
@@ -77,30 +98,26 @@ export class StructureManager {
             placed++;
         }
 
-        // 2. Place Lamp Posts (Strategic & Sparse)
-        // Goal: Realistic, cozy lighting. Not a runway.
-        // Rules:
-        // - Max posts = (w * h) / 600 (e.g. 20x20 = 400/600 < 1? No, let's say min 2-3 for small maps).
-        // - Only on "roads" (x%10==0 || y%10==0)
-        // - Prioritize being near a HOUSE (radius 8).
-        // - High scarcity (1 per 30 tiles roughly).
-
+        // 2. Place Lamp Posts (Organically along roads)
         const maxLamps = Math.max(3, Math.floor((w * h) / 600));
         let lampCount = 0;
-
-        // Create a list of potential road spots
         const potentialSpots: { x: number, y: number, score: number }[] = [];
 
         for (let x = 0; x < w; x++) {
             for (let y = 0; y < h; y++) {
-                if (x % 10 === 0 || y % 10 === 0) {
-                    // It's a road. Calculate "importance" score based on house proximity.
-                    let score = 0;
+                // Check if it's a valid organic road
+                const hVal = noise.noise2D(x * 0.1, y * 0.1);
+                if (hVal < 0.2 || hVal > 0.7) continue;
 
-                    // Check nearby houses
+                const isVerticalRoad = x % 10 === 0;
+                const isHorizontalRoad = y % 8 === 0;
+                const roadNoise = noise.noise2D(x * 0.5, y * 0.5);
+
+                if ((isVerticalRoad || isHorizontalRoad) && roadNoise > 0.3) {
+                    let score = 0;
                     for (const s of this.structures) {
                         if (s.type.startsWith('HOUSE')) {
-                            const dist = Math.abs(x - s.x) + Math.abs(y - s.y); // Manhattan is fine
+                            const dist = Math.abs(x - s.x) + Math.abs(y - s.y);
                             if (dist < 8) score += (10 - dist); // Closer = better
                         }
                     }
@@ -112,34 +129,19 @@ export class StructureManager {
             }
         }
 
-        // Sort by score (descending) so we light up villages first
         potentialSpots.sort((a, b) => b.score - a.score);
 
-        // Pick spots with some randomness but bias towards high score
-        // ACTUALLY: Let's just iterate and pick based on probability + limit.
-
-        // Revised approach:
-        // 1. Shuffle or iterate? If we sort, we might cluster too much. 
-        // Let's keep the high score ones, but enforce min distance between lamps.
-
         const placedLamps: { x: number, y: number }[] = [];
-        const MIN_LAMP_DIST = 15; // Don't put lamps too close
+        const MIN_LAMP_DIST = 15;
 
         for (const spot of potentialSpots) {
             if (lampCount >= maxLamps) break;
 
-            // Check distance to existing lamps
             const tooClose = placedLamps.some(l => (Math.abs(l.x - spot.x) + Math.abs(l.y - spot.y)) < MIN_LAMP_DIST);
             if (tooClose) continue;
 
-            // Check overlap with structures (houses)
             if (this.checkOverlap(spot.x, spot.y, 1, 1)) continue;
 
-            // Water check
-            const scale = 0.1;
-            if (noise.noise2D(spot.x * scale, spot.y * scale) < 0.2) continue;
-
-            // Place it
             this.structures.push({
                 id: `lamp_${spot.x}_${spot.y}`,
                 type: 'LAMP_POST',

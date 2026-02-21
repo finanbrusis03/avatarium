@@ -45,10 +45,17 @@ export class Terrain {
                 else if (h < 0.70) typeIdx = 3; // Dirt
                 else if (h < 0.85) typeIdx = 4; // Stone
                 else typeIdx = 5; // Snow
+                // Organic Meandering Roads
+                const isVerticalRoad = x % 10 === 0 && h > 0.1 && h < 0.7; // Avoid high mountais for roads
+                const isHorizontalRoad = y % 8 === 0 && h > 0.1 && h < 0.7;
 
-                // Simple Urban Grid Roads (skip water/sand)
-                if ((x % 10 === 0 || y % 10 === 0) && typeIdx !== 0 && typeIdx !== 1 && h > 0.1) {
-                    typeIdx = 6; // Asphalt
+                // Add noise disruption to roads so they aren't perfect grids
+                const roadNoise = this.noise.noise2D(x * 0.5, y * 0.5);
+
+                if ((isVerticalRoad || isHorizontalRoad) && typeIdx !== 0 && typeIdx !== 1) { // Not on water/sand
+                    if (roadNoise > 0.3) {
+                        typeIdx = 6; // Asphalt
+                    }
                 }
 
                 this.tiles[y * this.width + x] = typeIdx;
@@ -119,8 +126,33 @@ export class Terrain {
         ctx.lineTo(p.x, p.y + TILE_HEIGHT / 2);
         ctx.lineTo(p.x - TILE_WIDTH / 2, p.y);
         ctx.fill();
-        ctx.stroke();
 
+        // SMART BORDERS: Only draw lines if neighboring tile is a DIFFERENT type or empty
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
+        ctx.lineWidth = 1.5;
+        ctx.lineJoin = 'round';
+
+        ctx.beginPath();
+        // Top-Left Edge
+        if (this.getTile(x, y - 1) !== type) {
+            ctx.moveTo(p.x - TILE_WIDTH / 2, p.y);
+            ctx.lineTo(p.x, p.y - TILE_HEIGHT / 2);
+        }
+        // Top-Right Edge
+        if (this.getTile(x + 1, y) !== type) {
+            ctx.moveTo(p.x, p.y - TILE_HEIGHT / 2);
+            ctx.lineTo(p.x + TILE_WIDTH / 2, p.y);
+        }
+        // Bottom-Right Edge
+        if (this.getTile(x, y + 1) !== type) {
+            ctx.moveTo(p.x + TILE_WIDTH / 2, p.y);
+            ctx.lineTo(p.x, p.y + TILE_HEIGHT / 2);
+        }
+        // Bottom-Left Edge
+        if (this.getTile(x - 1, y) !== type) {
+            ctx.moveTo(p.x, p.y + TILE_HEIGHT / 2);
+            ctx.lineTo(p.x - TILE_WIDTH / 2, p.y);
+        }
         ctx.stroke();
 
         // --- Textures & Highlights ---
@@ -131,41 +163,65 @@ export class Terrain {
         const seed = x * 13.513 + y * 71.93;
 
         if (type === 'GRASS') {
+            // ORGANIC TEXTURES: Replace square pixels with soft circular tufts
             ctx.fillStyle = '#4CAF50';
+            ctx.globalAlpha = 0.8;
             ctx.beginPath();
             for (let i = 0; i < 4; i++) {
                 // Bounds scaled down to 60% of tile size to stay within diamond
                 const rx = p.x - (TILE_WIDTH * 0.3) + (Math.sin(seed + i * 1.1) * 0.5 + 0.5) * (TILE_WIDTH * 0.6);
                 const ry = p.y - (TILE_HEIGHT * 0.3) + (Math.cos(seed + i * 2.2) * 0.5 + 0.5) * (TILE_HEIGHT * 0.6);
                 ctx.moveTo(rx, ry);
-                ctx.arc(rx, ry, 1 + (i % 2), 0, Math.PI * 2);
+                ctx.arc(rx, ry, 2 + (i % 2), 0, Math.PI * 2); // Larger, softer circles
             }
             ctx.fill();
         } else if (type === 'SAND') {
+            // ORGANIC TEXTURES: Soft circular sand grains
             ctx.fillStyle = '#FBC02D';
+            ctx.globalAlpha = 0.6;
             ctx.beginPath();
             for (let i = 0; i < 5; i++) {
                 const rx = p.x - (TILE_WIDTH * 0.3) + (Math.sin(seed * i + 3.3) * 0.5 + 0.5) * (TILE_WIDTH * 0.6);
                 const ry = p.y - (TILE_HEIGHT * 0.3) + (Math.cos(seed * i + 4.4) * 0.5 + 0.5) * (TILE_HEIGHT * 0.6);
-                ctx.rect(rx, ry, 1, 1);
+                ctx.moveTo(rx, ry);
+                ctx.arc(rx, ry, 1.5, 0, Math.PI * 2); // Use arc instead of rect
             }
             ctx.fill();
         } else if (type === 'ASPHALT') {
-            // Road Markings (Dashed Lines)
+            // Road Markings (Dashed Lines) - only if adjacent to another asphalt to form a continuous road
+            const tTop = this.getTile(x, y - 1);
+            const tRight = this.getTile(x + 1, y);
+            const tBottom = this.getTile(x, y + 1);
+            const tLeft = this.getTile(x - 1, y);
+
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
             ctx.lineWidth = 1.5;
             ctx.setLineDash([4, 4]); // Dashed
             ctx.beginPath();
 
-            if (x % 10 === 0 && y % 10 !== 0) { // Vertical logic (follows one isometric axis)
-                ctx.moveTo(p.x + TILE_WIDTH / 4, p.y - TILE_HEIGHT / 4);
-                ctx.lineTo(p.x - TILE_WIDTH / 4, p.y + TILE_HEIGHT / 4);
-                ctx.stroke();
-            } else if (y % 10 === 0 && x % 10 !== 0) { // Horizontal logic
+            // Draw horizontal road line if left/right is asphalt
+            if (tLeft === 'ASPHALT' || tRight === 'ASPHALT') {
                 ctx.moveTo(p.x - TILE_WIDTH / 4, p.y - TILE_HEIGHT / 4);
                 ctx.lineTo(p.x + TILE_WIDTH / 4, p.y + TILE_HEIGHT / 4);
-                ctx.stroke();
-            } else if (x % 10 === 0 && y % 10 === 0) { // Intersection
+            }
+
+            // Draw vertical road line if top/bottom is asphalt
+            if (tTop === 'ASPHALT' || tBottom === 'ASPHALT') {
+                ctx.moveTo(p.x + TILE_WIDTH / 4, p.y - TILE_HEIGHT / 4);
+                ctx.lineTo(p.x - TILE_WIDTH / 4, p.y + TILE_HEIGHT / 4);
+            }
+
+            ctx.stroke();
+
+            // Intersection Dot
+            let asphaltCount = 0;
+            if (tTop === 'ASPHALT') asphaltCount++;
+            if (tRight === 'ASPHALT') asphaltCount++;
+            if (tBottom === 'ASPHALT') asphaltCount++;
+            if (tLeft === 'ASPHALT') asphaltCount++;
+
+            if (asphaltCount >= 3) { // Intersection
+                ctx.setLineDash([]);
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
