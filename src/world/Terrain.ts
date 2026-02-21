@@ -34,7 +34,7 @@ export class Terrain {
     private generate(seed: number) {
         const cx = Math.floor(this.width / 2);
         const cy = Math.floor(this.height / 2);
-        const beachY = this.height - 8; // Bottom 8 tiles form the coastline
+        const beachY = this.height - 12; // Bottom 12 tiles form the coastline
 
         for (let x = 0; x < this.width; x++) {
             for (let y = 0; y < this.height; y++) {
@@ -84,8 +84,13 @@ export class Terrain {
                 if (typeIdx === 2 || typeIdx === 3) {
                     // Forest Props on Grass/Dirt
                     if (val > 0.92) {
+                        let propType: Prop['type'] = 'BUSH';
+                        if (val > 0.98) propType = 'TREE';
+                        else if (val > 0.96) propType = 'ROCK';
+                        else if (val > 0.94) propType = 'FLOWER';
+
                         this.props.set(`${x},${y}`, {
-                            type: val > 0.97 ? 'TREE' : 'BUSH',
+                            type: propType,
                             x, y, variant: Math.floor(val * 100) % 3
                         });
                     }
@@ -422,6 +427,46 @@ export class Terrain {
             ctx.lineTo(tw * 0.4, th * 0.4);
             ctx.lineTo(tw * 0.0, th * 0.0);
             ctx.fill();
+        } else if (prop.type === 'ROCK') {
+            ctx.fillStyle = prop.variant === 0 ? '#757575' : '#9E9E9E';
+            ctx.beginPath();
+            ctx.moveTo(-10, 0);
+            ctx.lineTo(0, -8);
+            ctx.lineTo(12, 0);
+            ctx.lineTo(0, 5);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Highlight
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.beginPath();
+            ctx.moveTo(-5, -2);
+            ctx.lineTo(0, -6);
+            ctx.lineTo(5, -2);
+            ctx.fill();
+        } else if (prop.type === 'FLOWER') {
+            const colors = ['#FFEB3B', '#F44336', '#E91E63'];
+            ctx.fillStyle = colors[prop.variant % colors.length];
+
+            // Sway flowers
+            ctx.rotate(swayAngle * 4);
+
+            // Center
+            ctx.beginPath();
+            ctx.arc(0, -3, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Petals
+            ctx.fillStyle = '#FFF';
+            for (let i = 0; i < 5; i++) {
+                ctx.save();
+                ctx.rotate((i * 72) * Math.PI / 180);
+                ctx.beginPath();
+                ctx.ellipse(5, -3, 3, 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
         }
         ctx.restore();
     }

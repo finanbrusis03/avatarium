@@ -15,9 +15,14 @@ export class WorldRenderer {
     private avatarRenderer: AvatarRenderer;
     private terrain: Terrain;
     private structureManager: StructureManager;
+    private weather: 'NONE' | 'RAIN' | 'SNOW' = 'RAIN'; // Default to rain for demo
 
     public get structureManagerInstance() {
         return this.structureManager;
+    }
+
+    public get terrainInstance() {
+        return this.terrain;
     }
 
     // Config cache
@@ -176,26 +181,32 @@ export class WorldRenderer {
         for (const item of items) {
             if (item.type === 'PROP') {
                 this.terrain.drawProp(ctx, item.obj as Prop, time);
-            } else if (item.type === 'STRUCTURE') {
-                if (item.alpha && item.alpha < 1) {
-                    ctx.save();
-                    ctx.globalAlpha = item.alpha;
-                    this.drawStructure(ctx, item.obj as Structure, time);
-                    ctx.restore();
-                } else {
-                    ctx.save()
-                    ctx.globalAlpha = 1.0;
-                    this.drawStructure(ctx, item.obj as Structure, time);
-                    ctx.restore()
-                }
-            } else if (item.type === 'LAMP_POST') {
-                this.drawLampPostBase(ctx, item.obj as Structure, lightLevel, time);
             } else if (item.type === 'CREATURE') {
                 const c = item.obj as Creature;
                 if (c.id === selectedId) {
                     this.avatarRenderer.drawHighlight(c, 'selected');
                 }
                 this.avatarRenderer.draw(c, camera, time);
+            } else { // All other structure types
+                const s = item.obj as Structure;
+                ctx.save();
+                if (item.alpha && item.alpha < 1) {
+                    ctx.globalAlpha = item.alpha;
+                } else {
+                    ctx.globalAlpha = 1.0;
+                }
+
+                if (s.type === 'FOUNTAIN') {
+                    this.drawFountain(ctx, s, time);
+                } else if (s.type === 'LAMP_POST') {
+                    this.drawLampPostBase(ctx, s, lightLevel, time); // Base only, glow is separate pass
+                } else if (s.type === 'BENCH') {
+                    this.drawBench(ctx, s);
+                } else {
+                    // Houses and other generic structures
+                    this.drawStructure(ctx, s);
+                }
+                ctx.restore();
             }
         }
 
@@ -208,6 +219,9 @@ export class WorldRenderer {
 
         // 4.2 Procedural Cloud Shadows
         this.drawClouds(ctx, time);
+
+        // 4.3 Weather Effects (Rain/Snow) - Draw above everything but below UI
+        this.drawWeather(ctx, time);
 
         ctx.restore(); // Restore transform for Overlay
 
@@ -232,25 +246,22 @@ export class WorldRenderer {
                 // Transitions from 0 to 0.85 opacity as light level drops
                 const nightAlpha = Math.min(0.85, (0.65 - lightLevel) / 0.45 * 0.85);
                 ctx.fillStyle = `rgba(15, 15, 45, ${nightAlpha})`;
-                ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
+                ctx.fillRect(0, 0, this.config.width * 64, this.config.height * 32); // Use world bounds if absolute
             }
+
+            // 6. Special Light Gaps / Glows (Drawn AFTER night mask in some cases, or BEFORE with screen blending)
+            // But let's draw lamp glows above the night mask for better "pop"
+            ctx.save();
+            ctx.setTransform(camera.zoom, 0, 0, camera.zoom, this.canvasWidth / 2 - camera.x * camera.zoom, this.canvasHeight / 2 - camera.y * camera.zoom);
+            for (const item of items) {
+                if (item.type === 'LAMP_POST') {
+                    this.drawLampPostGlow(ctx, item.obj as Structure, lightLevel, time);
+                }
+            }
+            ctx.restore();
 
             ctx.restore();
         }
-
-        // 6. Draw GLOWS (Post-Overlay)
-        // Re-apply camera transform
-        ctx.save();
-        ctx.translate(centerX, centerY);
-        ctx.scale(camera.zoom, camera.zoom);
-        ctx.translate(-camera.x, -camera.y);
-
-        // Glow pass
-        for (const lamp of lampPosts) {
-            this.drawLampPostGlow(ctx, lamp, lightLevel, time);
-        }
-
-        ctx.restore();
 
         // Final cleanup
         ctx.globalAlpha = 1;
@@ -322,7 +333,10 @@ export class WorldRenderer {
         ctx.restore();
     }
 
-    private drawStructure(ctx: CanvasRenderingContext2D, s: Structure, time: number) {
+    private drawStructure(ctx: CanvasRenderingContext2D, s: Structure) {
+        // This method now specifically handles 'HOUSE_SMALL' and 'HOUSE_MEDIUM' (or generic buildings)
+        // Other structure types like FOUNTAIN, LAMP_POST, BENCH are handled by their own methods.
+
         const p2 = isoToScreen(s.x + s.width - 0.5, s.y - 0.5); // Right
         const p3 = isoToScreen(s.x + s.width - 0.5, s.y + s.height - 0.5); // Bottom/Front
         const p4 = isoToScreen(s.x - 0.5, s.y + s.height - 0.5); // Left
@@ -371,56 +385,7 @@ export class WorldRenderer {
         const palMed = palettesMed[Math.abs(hash) % palettesMed.length];
         const palSmall = palettesSmall[Math.abs(hash) % palettesSmall.length];
 
-        if (s.type === 'FOUNTAIN') {
-            // Isometric center of the 2x2 fountain
-            const center = isoToScreen(s.x + s.width / 2 - 0.5, s.y + s.height / 2 - 0.5);
-            const cx = center.x;
-            const cy = center.y;
-
-            // Draw Base Pool (Stone)
-            ctx.fillStyle = '#757575';
-            ctx.beginPath();
-            ctx.ellipse(cx, cy, 35, 18, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-
-            // Inner Pool (Water)
-            ctx.fillStyle = '#0288D1';
-            ctx.beginPath();
-            ctx.ellipse(cx, cy - 2, 30, 15, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Animated Water Rings
-            const ringScale = (time * 0.05) % 15;
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.ellipse(cx, cy - 2, ringScale * 2, ringScale, 0, 0, Math.PI * 2);
-            ctx.stroke();
-
-            // Center Pedestal
-            ctx.fillStyle = '#9E9E9E';
-            ctx.fillRect(cx - 5, cy - 20, 10, 20);
-            ctx.strokeRect(cx - 5, cy - 20, 10, 20);
-
-            // Water Spout (Animated)
-            const spoutHeight = 15 + Math.sin(time * 0.01) * 3;
-            ctx.fillStyle = 'rgba(129, 212, 250, 0.8)'; // Light blue translucent
-
-            ctx.beginPath();
-            ctx.moveTo(cx, cy - 20);
-            ctx.quadraticCurveTo(cx - 10, cy - 20 - spoutHeight, cx - 15, cy - 5);
-            ctx.quadraticCurveTo(cx - 5, cy - 20, cx, cy - 20);
-            ctx.fill();
-
-            ctx.beginPath();
-            ctx.moveTo(cx, cy - 20);
-            ctx.quadraticCurveTo(cx + 10, cy - 20 - spoutHeight, cx + 15, cy - 5);
-            ctx.quadraticCurveTo(cx + 5, cy - 20, cx, cy - 20);
-            ctx.fill();
-
-            return; // Done
-        } else if (!isHouse) {
+        if (!isHouse) {
             // ==================
             // COMMERCIAL BUILDING (HOUSE_MEDIUM)
             // ==================
@@ -589,6 +554,125 @@ export class WorldRenderer {
         }
     }
 
+    private drawFountain(ctx: CanvasRenderingContext2D, s: Structure, time: number) {
+        // Isometric center of the 2x2 fountain
+        const center = isoToScreen(s.x + s.width / 2 - 0.5, s.y + s.height / 2 - 0.5);
+        const cx = center.x;
+        const cy = center.y;
+
+        // Draw Base Pool (Stone)
+        ctx.fillStyle = '#757575';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 35, 18, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Inner Pool (Water)
+        ctx.fillStyle = '#0288D1';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy - 2, 30, 15, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Animated Water Rings
+        const ringScale = (time * 0.05) % 15;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy - 2, ringScale * 2, ringScale, 0, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Center Pedestal
+        ctx.fillStyle = '#9E9E9E';
+        ctx.fillRect(cx - 5, cy - 20, 10, 20);
+        ctx.strokeRect(cx - 5, cy - 20, 10, 20);
+
+        // Water Spout (Animated)
+        const spoutHeight = 15 + Math.sin(time * 0.01) * 3;
+        ctx.fillStyle = 'rgba(129, 212, 250, 0.8)'; // Light blue translucent
+
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 20);
+        ctx.quadraticCurveTo(cx - 10, cy - 20 - spoutHeight, cx - 15, cy - 5);
+        ctx.quadraticCurveTo(cx - 5, cy - 20, cx, cy - 20);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 20);
+        ctx.quadraticCurveTo(cx + 10, cy - 20 - spoutHeight, cx + 15, cy - 5);
+        ctx.quadraticCurveTo(cx + 5, cy - 20, cx, cy - 20);
+        ctx.fill();
+    }
+
+    private drawBench(ctx: CanvasRenderingContext2D, s: Structure) {
+        const p = isoToScreen(s.x, s.y);
+        const cx = p.x;
+        const cy = p.y;
+
+        const width = 30;
+        const depth = 10;
+        const height = 15;
+        const legHeight = 8;
+
+        // Seat
+        ctx.fillStyle = '#6D4C41'; // Dark brown
+        ctx.strokeStyle = '#4E342E'; // Even darker brown
+        ctx.lineWidth = 1;
+
+        // Top of the seat
+        ctx.beginPath();
+        ctx.moveTo(cx - width / 2, cy - depth / 2 - height);
+        ctx.lineTo(cx + width / 2, cy - depth / 2 - height);
+        ctx.lineTo(cx + width / 2 + depth / 2, cy - height);
+        ctx.lineTo(cx - width / 2 + depth / 2, cy - height);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Front face of the seat
+        ctx.beginPath();
+        ctx.moveTo(cx - width / 2, cy - depth / 2 - height);
+        ctx.lineTo(cx + width / 2, cy - depth / 2 - height);
+        ctx.lineTo(cx + width / 2, cy - depth / 2);
+        ctx.lineTo(cx - width / 2, cy - depth / 2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Right face of the seat
+        ctx.beginPath();
+        ctx.moveTo(cx + width / 2, cy - depth / 2 - height);
+        ctx.lineTo(cx + width / 2 + depth / 2, cy - height);
+        ctx.lineTo(cx + width / 2 + depth / 2, cy);
+        ctx.lineTo(cx + width / 2, cy - depth / 2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Legs
+        ctx.fillStyle = '#4E342E'; // Darker brown for legs
+        ctx.strokeStyle = '#3E2723';
+
+        // Front-left leg
+        ctx.beginPath();
+        ctx.moveTo(cx - width / 2 + 3, cy - depth / 2);
+        ctx.lineTo(cx - width / 2 + 3, cy - depth / 2 + legHeight);
+        ctx.lineTo(cx - width / 2 + 3 + depth / 2, cy + legHeight);
+        ctx.lineTo(cx - width / 2 + 3 + depth / 2, cy);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Front-right leg
+        ctx.beginPath();
+        ctx.moveTo(cx + width / 2 - 3, cy - depth / 2);
+        ctx.lineTo(cx + width / 2 - 3, cy - depth / 2 + legHeight);
+        ctx.lineTo(cx + width / 2 - 3 + depth / 2, cy + legHeight);
+        ctx.lineTo(cx + width / 2 - 3 + depth / 2, cy);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    }
+
     private drawLampPostBase(ctx: CanvasRenderingContext2D, s: Structure, lightLevel: number, time: number) {
         const p = isoToScreen(s.x, s.y);
         const cx = p.x;
@@ -656,6 +740,44 @@ export class WorldRenderer {
         ctx.beginPath();
         ctx.arc(cx, cy, radius, 0, Math.PI * 2);
         ctx.fill();
+        ctx.restore();
+    }
+
+    private drawWeather(ctx: CanvasRenderingContext2D, time: number) {
+        if (this.weather === 'NONE') return;
+
+        const count = this.weather === 'RAIN' ? 100 : 50;
+        const speed = this.weather === 'RAIN' ? 0.8 : 0.2;
+
+        ctx.save();
+        const worldWidth = this.config.width * 64;
+        const worldHeight = this.config.height * 32;
+
+        if (this.weather === 'RAIN') {
+            ctx.strokeStyle = 'rgba(174, 194, 224, 0.4)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < count; i++) {
+                const seed = i * 997;
+                const x = (seed + time * 0.1) % (worldWidth * 2) - worldWidth;
+                const yStart = (seed * 1.5 + time * speed) % (worldHeight * 2) - worldHeight;
+
+                ctx.beginPath();
+                ctx.moveTo(x, yStart);
+                ctx.lineTo(x - 4, yStart + 12); // Slightly slanted rain
+                ctx.stroke();
+            }
+        } else if (this.weather === 'SNOW') {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            for (let i = 0; i < count; i++) {
+                const seed = i * 1234;
+                const x = (seed + Math.sin(time * 0.001 + seed) * 50) % worldWidth;
+                const y = (seed * 0.8 + time * speed) % worldHeight;
+
+                ctx.beginPath();
+                ctx.arc(x, y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
         ctx.restore();
     }
 }

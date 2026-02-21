@@ -12,6 +12,7 @@ interface HUDMobileProps {
     onZoom: (factor: number) => void;
     onResetZoom: () => void;
     onRecententer: () => void; // Reset camera position
+    onSendMessage?: (text: string) => void;
 }
 
 export function HUDMobile({
@@ -25,9 +26,18 @@ export function HUDMobile({
     onStopFollowing,
     onZoom,
     onResetZoom,
-    onRecententer
+    onRecententer,
+    onSendMessage
 }: HUDMobileProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const [chatMsg, setChatMsg] = useState('');
+
+    const handleChatSubmit = () => {
+        if (!chatMsg.trim()) return;
+        onSendMessage?.(chatMsg.trim());
+        setChatMsg('');
+        setIsOpen(false);
+    };
 
     return (
         <>
@@ -102,6 +112,31 @@ export function HUDMobile({
                             </button>
                         </div>
                         {searchError && <div style={{ color: '#E53935', fontSize: '14px' }}>{searchError}</div>}
+
+                        {/* Chat */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <label style={{ fontSize: '12px', color: '#888', fontWeight: 'bold' }}>FALAR NO CHAT</label>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <input
+                                    value={chatMsg}
+                                    onChange={(e) => setChatMsg(e.target.value)}
+                                    placeholder="Escreva sua mensagem..."
+                                    style={{
+                                        flex: 1, background: '#1a1a1a', border: '1px solid #444', color: 'white',
+                                        padding: '12px', borderRadius: '12px', outline: 'none', fontSize: '16px'
+                                    }}
+                                />
+                                <button
+                                    onClick={handleChatSubmit}
+                                    style={{
+                                        background: '#4CAF50', color: 'white', border: 'none',
+                                        fontWeight: 'bold', borderRadius: '12px', padding: '0 20px'
+                                    }}
+                                >
+                                    Enviar
+                                </button>
+                            </div>
+                        </div>
 
                         {/* Follow Status */}
                         {followedName && (

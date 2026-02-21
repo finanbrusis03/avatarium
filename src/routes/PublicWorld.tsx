@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useGameLoop } from '../engine/GameLoop';
 import { type Camera, INITIAL_CAMERA } from '../engine/Camera';
-import { isoToScreen } from '../engine/IsoMath';
+import { isoToScreen, screenToIso } from '../engine/IsoMath';
 import { WorldRenderer } from '../world/WorldRenderer';
 import { type Creature } from '../world/EntityManager';
 import { updateCreatures } from '../world/MovementSystem';
@@ -11,6 +11,8 @@ import { normalizeHandle } from '../utils/normalizeHandle';
 import type { WorldConfig } from '../services/WorldConfigService';
 import { WorldConfigService } from '../services/WorldConfigService';
 import { SpawnManager } from '../world/SpawnManager';
+import { chatService } from '../services/ChatService';
+import { soundService } from '../services/SoundService';
 
 // UI Components
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -127,8 +129,25 @@ export function PublicWorld() {
 
         pollIntervalRef.current = window.setInterval(syncCreatures, 5000);
 
+        // 3. Chat Subscription
+        const unsubscribe = chatService.onMessage((msg) => {
+            setCreatures(prev => {
+                return prev.map(c => {
+                    if (c.id === msg.avatarId) {
+                        return {
+                            ...c,
+                            currentChat: msg.text,
+                            chatExpires: Date.now() + 6000 // 6 seconds duration
+                        };
+                    }
+                    return c;
+                });
+            });
+        });
+
         return () => {
             if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+            unsubscribe();
         };
     }, []);
 
@@ -428,20 +447,48 @@ export function PublicWorld() {
         if (hitId) {
             setCamera(prev => ({ ...prev, followTargetId: hitId }));
         } else {
-            // 2. Click to Move - DISABLED (v0.13)
-            // User requested to remove this. Clicking ground does nothing now.
-            // Avatars move autonomously only.
-
-            /* 
-            // Convert click to Grid Coords
+            // 2. Check for Prop Hit (e.g. TOWEL)
             const iso = screenToIso(worldX, worldY);
-            const gridX = Math.round(iso.x);
-            const gridY = Math.round(iso.y);
+            const gx = Math.round(iso.x);
+            const gy = Math.round(iso.y);
 
-            // ... (Rest of logic disabled) ...
-            */
+            if (rendererRef.current) {
+                const prop = rendererRef.current.terrainInstance.getPropAt(gx, gy);
+                if (prop && prop.type === 'TOWEL') {
+                    // Start sitting process
+                    setCreatures(prev => {
+                        return prev.map(c => {
+                            if (normalizeHandle(c.name) === 'criszimn') {
+                                // Player moves to towel and then sits
+                                // For now, let's just snap and sit for simplicity as requested
+                                return {
+                                    ...c,
+                                    x: gx,
+                                    y: gy,
+                                    targetX: undefined,
+                                    targetY: undefined,
+                                    state: 'SITTING'
+                                };
+                            }
+                            return c;
+                        });
+                    });
+                    soundService.playSit();
+                    return; // Done
+                }
+            }
 
-            // Optional: Deselect if clicking empty space?
+            // Normal movement or stand up
+            soundService.playClick();
+            setCreatures(prev => {
+                return prev.map(c => {
+                    if (normalizeHandle(c.name) === 'criszimn' && c.state === 'SITTING') {
+                        return { ...c, state: 'IDLE' };
+                    }
+                    return c;
+                });
+            });
+
             setCamera(prev => ({ ...prev, followTargetId: null }));
         }
     };
@@ -467,6 +514,12 @@ export function PublicWorld() {
                     onZoom={applyZoom}
                     onResetZoom={() => setCamera(prev => ({ ...prev, targetZoom: 1 }))}
                     onRecententer={() => setCamera(prev => ({ ...prev, targetX: 0, targetY: 0, followTargetId: null }))}
+                    onSendMessage={(text: string) => {
+                        const player = creatures.find(c => normalizeHandle(c.name) === 'criszimn');
+                        if (player) {
+                            chatService.sendMessage(player.id, text);
+                        }
+                    }}
                 />
             ) : (
                 <HUDDesktop
@@ -480,6 +533,12 @@ export function PublicWorld() {
                     onStopFollowing={() => setCamera(prev => ({ ...prev, followTargetId: null }))}
                     onZoom={applyZoom}
                     onResetZoom={() => setCamera(prev => ({ ...prev, targetZoom: 1 }))}
+                    onSendMessage={(text: string) => {
+                        const player = creatures.find(c => normalizeHandle(c.name) === 'criszimn');
+                        if (player) {
+                            chatService.sendMessage(player.id, text);
+                        }
+                    }}
                 />
             )}
 

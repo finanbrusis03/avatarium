@@ -66,15 +66,18 @@ export class AvatarRenderer {
             this.ctx.translate(-centerX, -centerY);
         }
 
-        // Animation State
         const isMoving = creature.moveProgress > 0 && creature.targetX !== undefined;
+        const isSitting = creature.state === 'SITTING';
+        const heightMultiplier = isSitting ? 0.8 : 1.0;
+        const groundOffset = isSitting ? 5 : 0;
+
         const idleFreq = 0.003;
         const walkFreq = 0.015;
 
         let bob = 0;
         if (isMoving) {
             bob = Math.sin(time * walkFreq + creature.animPhase) * 3;
-        } else {
+        } else if (!isSitting) {
             bob = Math.sin(time * idleFreq + creature.animPhase) * 1.5;
         }
 
@@ -82,18 +85,19 @@ export class AvatarRenderer {
         this.drawShadow(centerX, centerY);
 
         // RIG SETUP
-        const baseY = centerY - 15 - Math.abs(bob);
+        const baseY = centerY - 15 - Math.abs(bob) + groundOffset;
+        const finalY = baseY;
 
         const rig: AvatarRig = {
             x: centerX,
             y: baseY,
             scale: 1,
             anchors: {
-                head: { x: centerX, y: baseY - 12 },
-                eyes: { x: centerX, y: baseY - 12 },
-                hat: { x: centerX, y: baseY - 18 },
+                head: { x: centerX, y: baseY - (12 * heightMultiplier) },
+                eyes: { x: centerX, y: baseY - (12 * heightMultiplier) },
+                hat: { x: centerX, y: baseY - (18 * heightMultiplier) },
                 torso: { x: centerX, y: baseY },
-                back: { x: centerX, y: baseY - 2 },
+                back: { x: centerX, y: baseY - (2 * heightMultiplier) },
                 legs: { x: centerX, y: baseY + 8 },
                 feet: { x: centerX, y: baseY + 18 }
             }
@@ -108,12 +112,12 @@ export class AvatarRenderer {
 
         // DRAW LAYERS
         this.drawItem(creature, 'back', rig, animState);
-        this.drawBodyBase(creature, rig, animState);
+        this.drawBodyBase(creature, rig, animState, isSitting, heightMultiplier, finalY);
         this.drawItem(creature, 'bottom', rig, animState);
         this.drawItem(creature, 'top', rig, animState);
 
         // 3.2 Braços (Após o top para não ficar escondido)
-        this.drawArms(creature, rig, animState);
+        this.drawArms(creature, rig, animState, isSitting, heightMultiplier, finalY);
 
         this.drawItem(creature, 'shoes', rig, animState);
         this.drawFeet(creature, rig, animState);
@@ -125,6 +129,11 @@ export class AvatarRenderer {
 
         // 5. Name Tag
         this.drawNameTag(centerX, baseY - 45, creature.name);
+
+        // 6. Chat Bubble
+        if (creature.currentChat && creature.chatExpires && Date.now() < creature.chatExpires) {
+            this.drawChatBubble(centerX, baseY - 55, creature.currentChat);
+        }
 
         ctx.restore();
     }
@@ -166,9 +175,9 @@ export class AvatarRenderer {
         this.ctx.fill();
     }
 
-    private drawBodyBase(c: Creature, rig: AvatarRig, _anim: AnimState) {
+    private drawBodyBase(c: Creature, rig: AvatarRig, _anim: AnimState, isSitting: boolean, heightMultiplier: number, finalY: number) {
         const { ctx } = this;
-        const { x, y } = rig.anchors.torso;
+        const { x } = rig.anchors.torso;
 
         // Skin color
         ctx.fillStyle = '#ffdbac';
@@ -177,7 +186,10 @@ export class AvatarRenderer {
         const breathScale = _anim.isMoving ? 1 : 1 + Math.sin(_anim.time * 0.003 + Math.abs(x)) * 0.06;
 
         ctx.save();
-        ctx.translate(x, y);
+        ctx.translate(x, finalY);
+        if (isSitting) {
+            ctx.scale(1.05, heightMultiplier); // Slightly wider and shorter
+        }
         ctx.scale(1, breathScale);
 
         // Torso
@@ -195,30 +207,30 @@ export class AvatarRenderer {
         ctx.restore();
 
         // Neck
-        ctx.fillRect(x - 2, y - 10, 4, 4);
+        ctx.fillRect(x - 2, finalY - 10 * heightMultiplier, 4, 4 * heightMultiplier); // Adjust neck position and height
     }
 
-    private drawArms(_c: Creature, rig: AvatarRig, anim: AnimState) {
+    private drawArms(_c: Creature, rig: AvatarRig, anim: AnimState, _isSitting: boolean, heightMultiplier: number, finalY: number) {
         const { ctx } = this;
-        const { x, y } = rig.anchors.torso;
+        const { x } = rig.anchors.torso; // Only need x from rig.anchors.torso now
 
         ctx.fillStyle = '#ffdbac';
         const armSwing = anim.isMoving ? Math.sin(anim.time * 0.015) * 8 : 4;
 
         // Left Arm (Aligned with sleeve)
         ctx.save();
-        ctx.translate(x - 11, y - 6);
+        ctx.translate(x - 11, finalY - 6 * heightMultiplier); // Use finalY and heightMultiplier
         ctx.rotate(armSwing * Math.PI / 180);
-        ctx.fillRect(-2, 0, 3, 8); // Upper Arm
-        ctx.fillRect(-2, 8, 4, 3); // Hand
+        ctx.fillRect(-2, 0, 3, 8 * heightMultiplier); // Upper Arm, scale height
+        ctx.fillRect(-2, 8 * heightMultiplier, 4, 3 * heightMultiplier); // Hand, scale height
         ctx.restore();
 
         // Right Arm
         ctx.save();
-        ctx.translate(x + 11, y - 6);
+        ctx.translate(x + 11, finalY - 6 * heightMultiplier);
         ctx.rotate(-armSwing * Math.PI / 180);
-        ctx.fillRect(-1, 0, 3, 8); // Upper Arm
-        ctx.fillRect(-1, 8, 4, 3); // Hand
+        ctx.fillRect(-1, 0, 3, 8 * heightMultiplier); // Upper Arm
+        ctx.fillRect(-1, 8 * heightMultiplier, 4, 3 * heightMultiplier); // Hand
         ctx.restore();
     }
 
@@ -298,5 +310,67 @@ export class AvatarRenderer {
         ctx.textAlign = 'center';
         // Base alignment tweak since it's inside a pill now
         ctx.fillText(name, x, y);
+    }
+
+    private drawChatBubble(x: number, y: number, text: string) {
+        const { ctx } = this;
+        ctx.font = '14px sans-serif';
+        const maxWidth = 180;
+
+        // Simple word wrap
+        const words = text.split(' ');
+        const lines: string[] = [];
+        let currentLine = words[0];
+
+        for (let i = 1; i < words.length; i++) {
+            const w = ctx.measureText(currentLine + " " + words[i]).width;
+            if (w < maxWidth) {
+                currentLine += " " + words[i];
+            } else {
+                lines.push(currentLine);
+                currentLine = words[i];
+            }
+        }
+        lines.push(currentLine);
+
+        const lineHeight = 18;
+        const bubbleW = Math.min(maxWidth + 20, Math.max(...lines.map(l => ctx.measureText(l).width)) + 20);
+        const bubbleH = lines.length * lineHeight + 12;
+        const bx = x - bubbleW / 2;
+        const by = y - bubbleH - 10;
+
+        ctx.save();
+
+        // Shadow
+        ctx.shadowBlur = 4;
+        ctx.shadowColor = 'rgba(0,0,0,0.2)';
+
+        // Bubble body
+        ctx.fillStyle = 'white';
+        if (ctx.roundRect) {
+            ctx.beginPath();
+            ctx.roundRect(bx, by, bubbleW, bubbleH, 8);
+            ctx.fill();
+        } else {
+            ctx.fillRect(bx, by, bubbleW, bubbleH);
+        }
+
+        // Tail
+        ctx.beginPath();
+        ctx.moveTo(x - 6, y - 10);
+        ctx.lineTo(x + 6, y - 10);
+        ctx.lineTo(x, y - 4);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#333';
+        ctx.textAlign = 'center';
+
+        lines.forEach((line, i) => {
+            ctx.fillText(line, x, by + 18 + i * lineHeight);
+        });
+
+        ctx.restore();
     }
 }

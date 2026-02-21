@@ -1,6 +1,6 @@
 import { RNG } from '../utils/RNG';
 
-export type StructureType = 'HOUSE_SMALL' | 'HOUSE_MEDIUM' | 'FOUNTAIN' | 'LAMP_POST';
+export type StructureType = 'HOUSE_SMALL' | 'HOUSE_MEDIUM' | 'FOUNTAIN' | 'LAMP_POST' | 'BENCH';
 
 export interface Structure {
     id: string;
@@ -41,6 +41,26 @@ export class StructureManager {
             height: 2
         });
 
+        // 0.1 Add Lamp Posts and Benches symmetrically around the Plaza
+        const plazaItems: { type: StructureType, x: number, y: number }[] = [
+            { type: 'LAMP_POST', x: cx - 4, y: cy - 4 },
+            { type: 'LAMP_POST', x: cx + 3, y: cy - 4 },
+            { type: 'LAMP_POST', x: cx - 4, y: cy + 3 },
+            { type: 'LAMP_POST', x: cx + 3, y: cy + 3 },
+            { type: 'BENCH', x: cx - 3, y: cy - 1 },
+            { type: 'BENCH', x: cx + 2, y: cy - 1 },
+            { type: 'BENCH', x: cx - 1, y: cy - 3 },
+            { type: 'BENCH', x: cx - 1, y: cy + 2 },
+        ];
+
+        for (const item of plazaItems) {
+            this.structures.push({
+                id: `plaza_${item.type}_${item.x}_${item.y}`,
+                type: item.type,
+                x: item.x, y: item.y, width: 1, height: 1
+            });
+        }
+
         // 1. Place Houses (Organically along roads)
         const houseCount = Math.floor((w * h) / 100);
 
@@ -57,9 +77,11 @@ export class StructureManager {
             const x = rng.nextInt(2, w - width - 2);
             const y = rng.nextInt(2, h - height - 2);
 
-            // Avoid Center
+            // Avoid Center and Beach
             const cx = w / 2, cy = h / 2;
-            if (Math.abs(x - cx) < 4 && Math.abs(y - cy) < 4) continue;
+            const beachY = h - 14; // Margin to avoid sand
+            if (Math.abs(x - cx) < 6 && Math.abs(y - cy) < 6) continue;
+            if (y > beachY) continue;
 
             // Check Overlap
             if (this.checkOverlap(x, y, width, height)) continue;

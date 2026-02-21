@@ -6,6 +6,7 @@ import type { Loadout } from '../cosmetics/Types';
 import { generateLoadout } from '../cosmetics/Generator';
 
 export type Temperament = 'SHY' | 'SOCIAL' | 'EXPLORER';
+export type CreatureState = 'IDLE' | 'MOVING' | 'SITTING';
 
 export interface Creature {
     id: string;
@@ -22,7 +23,7 @@ export interface Creature {
     // AI State
     path?: { x: number, y: number }[]; // Current path queue
     idleTimer?: number; // Time to wait before next move
-    state?: 'IDLE' | 'MOVING';
+    state?: CreatureState;
     isPlayer?: boolean; // If true, AI won't auto-move
 
     // Visual Attributes (Deterministic)
@@ -46,6 +47,10 @@ export interface Creature {
     isSpawning?: boolean;
     spawnDuration?: number;
     hasEmittedSpawn?: boolean;
+
+    // Chat State (Runtime only)
+    currentChat?: string;
+    chatExpires?: number;
 }
 
 export function createCreature(name: string, x: number, y: number, variant: number = 0, gender: 'M' | 'F' = 'M'): Creature {

@@ -1,4 +1,4 @@
-// React import removed due to TS6133
+import React from 'react';
 
 interface HUDDesktopProps {
     onlineCount: number;
@@ -11,6 +11,7 @@ interface HUDDesktopProps {
     onStopFollowing: () => void;
     onZoom: (factor: number) => void;
     onResetZoom: () => void;
+    onSendMessage?: (text: string) => void;
 }
 
 export function HUDDesktop({
@@ -23,8 +24,16 @@ export function HUDDesktop({
     followedName,
     onStopFollowing,
     onZoom,
-    onResetZoom
+    onResetZoom,
+    onSendMessage
 }: HUDDesktopProps) {
+    const [chatMsg, setChatMsg] = React.useState('');
+
+    const handleChatSubmit = () => {
+        if (!chatMsg.trim()) return;
+        onSendMessage?.(chatMsg.trim());
+        setChatMsg('');
+    };
     return (
         <div style={{
             position: 'absolute', top: 0, left: 0, right: 0, height: '60px',
@@ -67,6 +76,28 @@ export function HUDDesktop({
                             {searchError}
                         </div>
                     )}
+                </div>
+
+                {/* Chat Input */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ width: '1px', height: '20px', background: '#333', margin: '0 10px' }} />
+                    <input
+                        value={chatMsg}
+                        onChange={(e) => setChatMsg(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleChatSubmit()}
+                        placeholder="Diga algo..."
+                        style={{
+                            background: '#1a1a1a', border: '1px solid #444', color: 'white',
+                            padding: '6px 12px', borderRadius: '4px', outline: 'none',
+                            width: '250px', fontSize: '13px'
+                        }}
+                    />
+                    <button
+                        onClick={handleChatSubmit}
+                        style={{ ...btnStyle, background: '#555', fontSize: '12px', padding: '6px 10px' }}
+                    >
+                        Enviar
+                    </button>
                 </div>
             </div>
 
