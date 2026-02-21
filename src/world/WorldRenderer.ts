@@ -324,24 +324,20 @@ export class WorldRenderer {
     }
 
     private drawStructure(ctx: CanvasRenderingContext2D, s: Structure) {
-        // const p = isoToScreen(s.x, s.y); // Unused
-
-        const wh = 70 + (s.type === 'HOUSE_MEDIUM' ? 30 : 0);
-
-        // Actually p1 is unused by lint, but let's keep logic clear if we ever need debug. 
-        // Linter complained about p1. Let's just use what we need.
-        // p2, p3, p4 are used.
-
         const p2 = isoToScreen(s.x + s.width - 0.5, s.y - 0.5); // Right
         const p3 = isoToScreen(s.x + s.width - 0.5, s.y + s.height - 0.5); // Bottom/Front
         const p4 = isoToScreen(s.x - 0.5, s.y + s.height - 0.5); // Left
+        const p1 = isoToScreen(s.x - 0.5, s.y - 0.5); // Back/Top
 
-        const wallDark = '#5D4037';
-        const wallLight = '#8D6E63';
-        const roofColor = '#D32F2F';
-        const roofLight = '#E57373';
+        // Modern city block aesthetic
+        const isMed = s.type === 'HOUSE_MEDIUM';
+        const height = isMed ? 110 : 65;
 
-        // Ambient Occlusion / Base Shadow (Faux drop shadow on the ground)
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
+        ctx.lineJoin = 'round';
+
+        // Base Shadow
         ctx.save();
         ctx.globalAlpha = 0.3;
         ctx.fillStyle = '#000000';
@@ -349,61 +345,144 @@ export class WorldRenderer {
         ctx.moveTo(p4.x - 10, p4.y + 5);
         ctx.lineTo(p3.x, p3.y + 10);
         ctx.lineTo(p2.x + 10, p2.y + 5);
-        ctx.lineTo(p2.x, p2.y - 10); // taper off
+        ctx.lineTo(p2.x, p2.y - 10);
         ctx.lineTo(p4.x, p4.y - 10);
         ctx.fill();
         ctx.restore();
 
+        // Building Palettes based on hash
+        let hash = 0;
+        for (let i = 0; i < s.id.length; i++) hash = (hash << 5) - hash + s.id.charCodeAt(i);
+
+        const palettes = [
+            { left: '#37474F', right: '#546E7A', top: '#CFD8DC' }, // Blue-Grey factory
+            { left: '#4E342E', right: '#6D4C41', top: '#A1887F' }, // Brown brick
+            { left: '#2E3131', right: '#6C7A89', top: '#EEEEEE' }, // Modern white/glass
+            { left: '#006064', right: '#00838F', top: '#80DEEA' }  // Cyan glass
+        ];
+        const pal = palettes[Math.abs(hash) % palettes.length];
+
         // Left Wall
-        ctx.fillStyle = wallDark;
+        const leftGrad = ctx.createLinearGradient(p4.x, p4.y, p4.x, p4.y - height);
+        leftGrad.addColorStop(0, '#111111');
+        leftGrad.addColorStop(1, pal.left);
+        ctx.fillStyle = leftGrad;
         ctx.beginPath();
         ctx.moveTo(p4.x, p4.y);
         ctx.lineTo(p3.x, p3.y);
-        ctx.lineTo(p3.x, p3.y - wh);
-        ctx.lineTo(p4.x, p4.y - wh);
-        ctx.fill();
-        ctx.stroke();
+        ctx.lineTo(p3.x, p3.y - height);
+        ctx.lineTo(p4.x, p4.y - height);
+        ctx.fill(); ctx.stroke();
 
         // Right Wall
-        ctx.fillStyle = wallLight;
+        const rightGrad = ctx.createLinearGradient(p3.x, p3.y, p3.x, p3.y - height);
+        rightGrad.addColorStop(0, '#222222');
+        rightGrad.addColorStop(1, pal.right);
+        ctx.fillStyle = rightGrad;
         ctx.beginPath();
         ctx.moveTo(p3.x, p3.y);
         ctx.lineTo(p2.x, p2.y);
-        ctx.lineTo(p2.x, p2.y - wh);
-        ctx.lineTo(p3.x, p3.y - wh);
-        ctx.fill();
-        ctx.stroke();
+        ctx.lineTo(p2.x, p2.y - height);
+        ctx.lineTo(p3.x, p3.y - height);
+        ctx.fill(); ctx.stroke();
 
         // Roof
-        const roofPeakH = 40;
-        const center = isoToScreen(s.x + s.width / 2 - 0.5, s.y + s.height / 2 - 0.5);
-        const peakX = center.x;
-        const peakY = center.y - wh - roofPeakH;
-
-        ctx.fillStyle = roofLight;
+        ctx.fillStyle = pal.top;
         ctx.beginPath();
-        ctx.moveTo(p4.x, p4.y - wh);
-        ctx.lineTo(p3.x, p3.y - wh);
-        ctx.lineTo(peakX, peakY);
-        ctx.fill();
-        ctx.stroke();
+        ctx.moveTo(p4.x, p4.y - height);
+        ctx.lineTo(p3.x, p3.y - height);
+        ctx.lineTo(p2.x, p2.y - height);
+        ctx.lineTo(p1.x, p1.y - height);
+        ctx.fill(); ctx.stroke();
 
-        ctx.fillStyle = roofColor;
-        ctx.beginPath();
-        ctx.moveTo(p3.x, p3.y - wh);
-        ctx.lineTo(p2.x, p2.y - wh);
-        ctx.lineTo(peakX, peakY);
-        ctx.fill();
-        ctx.stroke();
+        // Draw Lit Windows (Procedural Matrix)
+        const floors = isMed ? 5 : 3;
+        const colsLeft = s.width * 2;
+        const colsRight = s.height * 2;
 
-        if (s.type === 'HOUSE_SMALL' || s.type === 'HOUSE_MEDIUM') {
-            const doorW = 14;
-            const doorH = 25;
+        const drawWindow = (u: number, v: number, face: 'LEFT' | 'RIGHT') => {
+            let wx, wy;
+            if (face === 'LEFT') {
+                wx = p4.x + (p3.x - p4.x) * u;
+                wy = p4.y + (p3.y - p4.y) * u - (height * v);
+            } else {
+                wx = p3.x + (p2.x - p3.x) * u;
+                wy = p3.y + (p2.y - p3.y) * u - (height * v);
+            }
+
+            const winHash = Math.abs(hash * (Math.floor(u * 10) + 1) * (Math.floor(v * 10) + 1));
+            const isLit = (winHash % 100) > 55; // 45% of windows are lit
+
+            ctx.fillStyle = isLit ? '#FFF59D' : '#1A232E'; // Neon yellow or dark glass
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+            ctx.lineWidth = 1;
+
+            ctx.beginPath();
+            if (face === 'LEFT') {
+                ctx.moveTo(wx, wy);
+                ctx.lineTo(wx + 8, wy + 4);
+                ctx.lineTo(wx + 8, wy + 14);
+                ctx.lineTo(wx, wy + 10);
+            } else {
+                ctx.moveTo(wx, wy);
+                ctx.lineTo(wx + 8, wy - 4);
+                ctx.lineTo(wx + 8, wy + 6);
+                ctx.lineTo(wx, wy + 10);
+            }
+            ctx.fill();
+            ctx.stroke();
+        };
+
+        for (let f = 1; f <= floors; f++) {
+            for (let c = 1; c < colsLeft; c++) {
+                drawWindow(c / colsLeft, f / (floors + 1), 'LEFT');
+            }
+            for (let c = 1; c < colsRight; c++) {
+                drawWindow(c / colsRight, f / (floors + 1), 'RIGHT');
+            }
+        }
+
+        // Roof details
+        if (isMed) {
+            const cx = (p1.x + p3.x) / 2;
+            const cy = (p1.y + p3.y) / 2 - height;
+
+            // AC unit
+            ctx.fillStyle = '#9E9E9E';
+            ctx.fillRect(cx - 15, cy - 10, 16, 12);
+            ctx.strokeRect(cx - 15, cy - 10, 16, 12);
+
+            // Antenna
+            ctx.beginPath();
+            ctx.moveTo(cx + 8, cy - 5);
+            ctx.lineTo(cx + 8, cy - 35);
+            ctx.stroke();
+
+            // Red blinking light
+            ctx.fillStyle = '#F44336';
+            ctx.beginPath();
+            ctx.arc(cx + 8, cy - 35, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Glow for antenna
+            if (Date.now() % 2000 > 1000) {
+                ctx.fillStyle = 'rgba(244, 67, 54, 0.4)';
+                ctx.beginPath();
+                ctx.arc(cx + 8, cy - 35, 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        } else {
+            // Small house basic entrance door
             const dx = (p3.x - p4.x) * 0.5 + p4.x;
             const dy = (p3.y - p4.y) * 0.5 + p4.y;
-
-            ctx.fillStyle = '#3E2723';
-            ctx.fillRect(dx - doorW / 2, dy - doorH, doorW, doorH);
+            ctx.fillStyle = '#212121';
+            ctx.beginPath();
+            ctx.moveTo(dx - 5, dy - 3);
+            ctx.lineTo(dx + 5, dy + 2);
+            ctx.lineTo(dx + 5, dy - 16);
+            ctx.lineTo(dx - 5, dy - 21);
+            ctx.fill();
+            ctx.stroke();
         }
     }
 

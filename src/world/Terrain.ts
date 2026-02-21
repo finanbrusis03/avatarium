@@ -46,9 +46,9 @@ export class Terrain {
                 else if (h < 0.85) typeIdx = 4; // Stone
                 else typeIdx = 5; // Snow
 
-                if ((x % 10 === 0 || y % 10 === 0) && h > 0.3) {
-                    // Grid roads?
-                    // typeIdx = 6; // Asphalt
+                // Simple Urban Grid Roads (skip water/sand)
+                if ((x % 10 === 0 || y % 10 === 0) && typeIdx !== 0 && typeIdx !== 1 && h > 0.1) {
+                    typeIdx = 6; // Asphalt
                 }
 
                 this.tiles[y * this.width + x] = typeIdx;
@@ -85,17 +85,21 @@ export class Terrain {
         let color = '#4CAF50';
         let topColor = '#66BB6A';
 
+        // Richer, deeper color palette
         switch (type) {
-            case 'WATER': color = '#1976D2'; topColor = '#2196F3'; break;
-            case 'SAND': color = '#FBC02D'; topColor = '#FDD835'; break;
-            case 'DIRT': color = '#5D4037'; topColor = '#795548'; break;
-            case 'STONE': color = '#616161'; topColor = '#757575'; break;
-            case 'SNOW': color = '#BDBDBD'; topColor = '#E0E0E0'; break;
-            case 'ASPHALT': color = '#212121'; topColor = '#424242'; break;
+            case 'WATER': color = '#1565C0'; topColor = '#1E88E5'; break;
+            case 'SAND': color = '#F57F17'; topColor = '#FBC02D'; break;
+            case 'DIRT': color = '#4E342E'; topColor = '#5D4037'; break;
+            case 'STONE': color = '#424242'; topColor = '#616161'; break;
+            case 'SNOW': color = '#9E9E9E'; topColor = '#BDBDBD'; break;
+            case 'ASPHALT': color = '#263238'; topColor = '#37474F'; break;
+            case 'GRASS': color = '#2E7D32'; topColor = '#4CAF50'; break;
         }
 
         ctx.lineWidth = 1;
-        ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+        // Strong line-art contour for the "SimCity / Modern" aesthetic
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
+        ctx.lineJoin = 'round';
 
         // Side
         ctx.fillStyle = color;
@@ -146,6 +150,30 @@ export class Terrain {
                 ctx.rect(rx, ry, 1, 1);
             }
             ctx.fill();
+        } else if (type === 'ASPHALT') {
+            // Road Markings (Dashed Lines)
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]); // Dashed
+            ctx.beginPath();
+
+            if (x % 10 === 0 && y % 10 !== 0) { // Vertical logic (follows one isometric axis)
+                ctx.moveTo(p.x + TILE_WIDTH / 4, p.y - TILE_HEIGHT / 4);
+                ctx.lineTo(p.x - TILE_WIDTH / 4, p.y + TILE_HEIGHT / 4);
+                ctx.stroke();
+            } else if (y % 10 === 0 && x % 10 !== 0) { // Horizontal logic
+                ctx.moveTo(p.x - TILE_WIDTH / 4, p.y - TILE_HEIGHT / 4);
+                ctx.lineTo(p.x + TILE_WIDTH / 4, p.y + TILE_HEIGHT / 4);
+                ctx.stroke();
+            } else if (x % 10 === 0 && y % 10 === 0) { // Intersection
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.setLineDash([]); // Reset dash for next draws
+            ctx.lineWidth = 1; // Reset line width
         } else if (type === 'WATER') {
             // Animated water shimmering lines (Safe line drawing)
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
