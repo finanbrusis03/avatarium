@@ -207,16 +207,35 @@ export class WorldRenderer {
         globalParticleSystem.update(16); // Approx 60fps delta
         globalParticleSystem.draw(ctx);
 
+        // 4.2 Procedural Cloud Shadows
+        this.drawClouds(ctx, time);
+
         ctx.restore(); // Restore transform for Overlay
 
-        // 5. Day/Night Overlay
-        const darkness = 1.0 - lightLevel;
-        const overlayAlpha = darkness * 0.85;
-
-        if (overlayAlpha > 0.05) {
+        // 5. Day/Night Overlay & Atmospheric Coloring
+        if (lightLevel < 0.99) {
             ctx.save();
-            ctx.fillStyle = `rgba(10, 10, 25, ${overlayAlpha})`;
-            ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
+
+            // Sunset Phase (lightLevel between 0.4 and 0.9)
+            if (lightLevel > 0.4) {
+                // Peak sunset intensity at 0.65
+                const sunsetIntensity = Math.max(0, 1.0 - Math.abs(lightLevel - 0.65) / 0.25);
+                if (sunsetIntensity > 0) {
+                    const alpha = sunsetIntensity * 0.35;
+                    // Warm golden/orange glow
+                    ctx.fillStyle = `rgba(255, 140, 50, ${alpha})`;
+                    ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
+                }
+            }
+
+            // Night Phase (lightLevel < 0.65)
+            if (lightLevel < 0.65) {
+                // Transitions from 0 to 0.85 opacity as light level drops
+                const nightAlpha = Math.min(0.85, (0.65 - lightLevel) / 0.45 * 0.85);
+                ctx.fillStyle = `rgba(15, 15, 45, ${nightAlpha})`;
+                ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
+            }
+
             ctx.restore();
         }
 
@@ -274,6 +293,32 @@ export class WorldRenderer {
             ctx.fill();
             ctx.restore();
         }
+    }
+
+    private drawClouds(ctx: CanvasRenderingContext2D, time: number) {
+        // Draw large moving shadows across the world
+        const cloudCount = 6;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.08)'; // Very subtle shadow
+
+        const worldPixelWidth = this.config.width * 64 * 2; // Rough bounds
+        const worldPixelHeight = this.config.height * 32 * 2;
+
+        ctx.save();
+        for (let i = 0; i < cloudCount; i++) {
+            const speed = 0.02 + (i * 0.003);
+            const size = 300 + (i * 50);
+
+            // Continual movement looping across the map bounding box
+            const offsetX = (time * speed + i * 1000) % (worldPixelWidth * 2) - worldPixelWidth;
+            const offsetY = (time * (speed * 0.7) + i * 800) % (worldPixelHeight * 2) - worldPixelHeight;
+
+            ctx.beginPath();
+            ctx.ellipse(offsetX, offsetY, size, size * 0.6, 0, 0, Math.PI * 2);
+            ctx.ellipse(offsetX + size * 0.8, offsetY + size * 0.2, size * 0.7, size * 0.5, 0, 0, Math.PI * 2);
+            ctx.ellipse(offsetX - size * 0.6, offsetY - size * 0.1, size * 0.6, size * 0.4, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
     }
 
     private drawStructure(ctx: CanvasRenderingContext2D, s: Structure) {
