@@ -112,11 +112,11 @@ export class Terrain {
     }
 
     public drawFullTerrain(ctx: CanvasRenderingContext2D, startX: number, endX: number, startY: number, endY: number, time: number = 0) {
-        // Pass 0: Base Diamonds (Background Fallback for gaps, NOT for water)
+        // Pass 0: Base Diamonds (Background Fallback, skip WATER so it has no hard square edges)
         for (let x = startX; x <= endX; x++) {
             for (let y = startY; y <= endY; y++) {
                 const type = this.getTile(x, y);
-                // Do not draw square bases for water, water needs to be organic
+                // Do not draw square bases for water, water must be purely organic ellipses
                 if (type !== 'WATER') {
                     const p = isoToScreen(x, y);
                     ctx.fillStyle = this.getTileColor(type);
@@ -131,15 +131,25 @@ export class Terrain {
         }
 
         // Pass 1: Organic Biome Splats (Water -> Sand -> Dirt -> Grass)
-        // WATER is back to index 0. This forces the lowest layer to be a rounded curved liquid 
-        // splat that spreads into the black void smoothly, avoiding pixelated shore edges at the world border.
+        // WATER is first. It draws an oversized ellipse that smooths out the world border.
+        // Overlapping sand/grass will "eat" the water's inner corners creating organic beaches, 
+        // while the outer black canvas border gets rounded off by the water ellipse.
         const organicOrder: TileType[] = ['WATER', 'SAND', 'DIRT', 'GRASS'];
         for (const targetType of organicOrder) {
-            ctx.fillStyle = this.getTileColor(targetType);
             for (let x = startX; x <= endX; x++) {
                 for (let y = startY; y <= endY; y++) {
                     if (this.getTile(x, y) === targetType) {
                         const p = isoToScreen(x, y);
+
+                        if (targetType === 'WATER') {
+                            const grad = ctx.createLinearGradient(p.x, p.y - TILE_HEIGHT / 2, p.x, p.y + TILE_HEIGHT / 2);
+                            grad.addColorStop(0, '#00BFFF'); // Bright Cyan Top
+                            grad.addColorStop(1, '#0277BD'); // Deep Ocean Blue Bottom
+                            ctx.fillStyle = grad;
+                        } else {
+                            ctx.fillStyle = this.getTileColor(targetType);
+                        }
+
                         ctx.beginPath();
                         ctx.ellipse(p.x, p.y, (TILE_WIDTH / 2) * 1.35, (TILE_HEIGHT / 2) * 1.35, 0, 0, Math.PI * 2);
                         ctx.fill();
@@ -191,23 +201,10 @@ export class Terrain {
                     }
                     ctx.fill();
                 } else if (type === 'WATER') {
-                    // Create a subtle deep water gradient effect over the diamond
-                    const grad = ctx.createLinearGradient(p.x, p.y - TILE_HEIGHT / 2, p.x, p.y + TILE_HEIGHT / 2);
-                    grad.addColorStop(0, 'rgba(30, 136, 229, 0.2)'); // Lighter reflection top
-                    grad.addColorStop(1, 'rgba(21, 101, 192, 0.6)'); // Deeper blue bottom
-                    ctx.fillStyle = grad;
-
-                    ctx.beginPath();
-                    ctx.moveTo(p.x, p.y - TILE_HEIGHT / 2);
-                    ctx.lineTo(p.x + TILE_WIDTH / 2, p.y);
-                    ctx.lineTo(p.x, p.y + TILE_HEIGHT / 2);
-                    ctx.lineTo(p.x - TILE_WIDTH / 2, p.y);
-                    ctx.fill();
-
                     // Liquid animated shimmering ripples (curved bezier paths instead of straight lines)
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
                     ctx.lineCap = 'round';
-                    ctx.lineWidth = 1.5;
+                    ctx.lineWidth = 1.8;
 
                     const animSpeed = 0.002;
                     const wave1 = Math.sin(time * animSpeed + seed) * 0.5 + 0.5;
