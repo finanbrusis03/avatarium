@@ -306,7 +306,6 @@ export class WorldRenderer {
         const worldPixelWidth = this.config.width * 64 * 2; // Rough bounds
         const worldPixelHeight = this.config.height * 32 * 2;
 
-        ctx.save();
         for (let i = 0; i < cloudCount; i++) {
             const speed = 0.02 + (i * 0.003);
             const size = 300 + (i * 50);
