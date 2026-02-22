@@ -53,7 +53,7 @@ export function updateCreatures(creatures: Creature[], deltaTime: number, mapSiz
 
         // STATE: MOVING
         if (creature.targetX !== undefined && creature.targetY !== undefined) {
-            creature.moveProgress += (deltaTime / 1000) * MOVE_SPEED;
+            creature.moveProgress += (deltaTime / 1000) * MOVE_SPEED * (creature.speedMultiplier || 1);
 
             if (creature.moveProgress >= 1) {
                 creature.x = creature.targetX;

@@ -410,17 +410,81 @@ export class Terrain {
         ctx.translate(cx, cy);
 
         if (prop.type === 'TREE') {
-            ctx.fillStyle = '#5D4037';
-            ctx.fillRect(-3, -20, 6, 20); // Trunk
+            const variant = prop.variant % 3;
 
-            // Sway the leaves from the top of the trunk
-            ctx.translate(0, -25);
-            ctx.rotate(swayAngle * 2);
+            // 0: Giant Oak (Redonda, Clássica)
+            // 1: Tall Pine (Triangular longo)
+            // 2: Cypress / Poplar (Oval alta)
 
-            ctx.fillStyle = '#2E7D32'; // Leaves
-            ctx.beginPath();
-            ctx.arc(0, -5, 15, 0, Math.PI * 2);
-            ctx.fill();
+            if (variant === 0) {
+                // Giant Oak
+                ctx.fillStyle = '#4E342E';
+                ctx.fillRect(-5, -30, 10, 30); // Trunk
+
+                ctx.translate(0, -35); // Sway pivot
+                ctx.rotate(swayAngle * 1.5);
+
+                ctx.fillStyle = '#2E7D32';
+                ctx.beginPath();
+                ctx.arc(0, -10, 25, 0, Math.PI * 2); // Huge Canopy
+                ctx.fill();
+
+                // Highlight
+                ctx.fillStyle = '#388E3C';
+                ctx.beginPath();
+                ctx.arc(-5, -15, 12, 0, Math.PI * 2);
+                ctx.fill();
+
+            } else if (variant === 1) {
+                // Tall Pine
+                ctx.fillStyle = '#3E2723';
+                ctx.fillRect(-4, -25, 8, 25);
+
+                ctx.translate(0, -25);
+                ctx.rotate(swayAngle * 2.5);
+
+                ctx.fillStyle = '#1B5E20';
+
+                // Layer 1 (Bottom)
+                ctx.beginPath();
+                ctx.moveTo(0, -30);
+                ctx.lineTo(-20, 5);
+                ctx.lineTo(20, 5);
+                ctx.fill();
+
+                // Layer 2 (Mid)
+                ctx.beginPath();
+                ctx.moveTo(0, -45);
+                ctx.lineTo(-15, -10);
+                ctx.lineTo(15, -10);
+                ctx.fill();
+
+                // Layer 3 (Top)
+                ctx.beginPath();
+                ctx.moveTo(0, -55);
+                ctx.lineTo(-10, -25);
+                ctx.lineTo(10, -25);
+                ctx.fill();
+
+            } else {
+                // Cypress (Oval Alta)
+                ctx.fillStyle = '#4E342E';
+                ctx.fillRect(-3, -20, 6, 20); // Short visible trunk
+
+                ctx.translate(0, -25);
+                ctx.rotate(swayAngle * 1.8);
+
+                ctx.fillStyle = '#33691E'; // Dark yellow-green
+                ctx.beginPath();
+                ctx.ellipse(0, -20, 12, 35, 0, 0, Math.PI * 2); // Tall ellipse
+                ctx.fill();
+
+                // Inner texture core
+                ctx.fillStyle = '#558B2F';
+                ctx.beginPath();
+                ctx.ellipse(-2, -20, 5, 25, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
         } else if (prop.type === 'BUSH') {
             // Sway from the root
             ctx.rotate(swayAngle * 1.5);

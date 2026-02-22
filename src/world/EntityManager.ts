@@ -38,6 +38,7 @@ export interface Creature {
     // Behavior Attributes (Deterministic)
     temperament: Temperament;
     gender: 'M' | 'F';
+    speedMultiplier: number;
 
     // Animation State (Runtime only)
     animPhase: number;
@@ -71,6 +72,8 @@ export function createCreature(name: string, x: number, y: number, variant: numb
         loadout: generateLoadout(seed),
         gender,
 
+        // Generate a random speed multiplier between 0.6 and 1.6
+        speedMultiplier: 0.6 + rng.nextFloat(),
         temperament: rng.pick(temperaments),
         animPhase: rng.nextFloat() * Math.PI * 2,
 
@@ -105,6 +108,7 @@ export function hydrateCreature(dbData: any): Creature {
         variantSeed: variant_seed,
         gender: gender || 'M',
 
+        speedMultiplier: 0.6 + rng.nextFloat(),
         temperament: rng.pick(temperaments),
         animPhase: rng.nextFloat() * Math.PI * 2,
 
