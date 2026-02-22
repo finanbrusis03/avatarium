@@ -9,7 +9,7 @@ export class SpawnManager {
 
         // Instantiate terrain and structures to check collisions
         const terrain = new Terrain(config.width, config.height, config.seed);
-        const structures = new StructureManager(config.width, config.height, config.seed);
+        const structures = new StructureManager(config.width, config.height, config.seed, terrain);
 
         const isBlocked = (x: number, y: number) => {
             if (x < 0 || x >= config.width || y < 0 || y >= config.height) return true;
