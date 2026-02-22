@@ -900,18 +900,53 @@ export class WorldRenderer {
         const worldHeight = this.config.height * 32;
 
         if (this.weather === 'RAIN') {
-            ctx.strokeStyle = 'rgba(200, 220, 255, 0.6)'; // Chuva mais visível
-            ctx.lineWidth = 1.5;
-            for (let i = 0; i < count; i++) {
-                const seed = i * 997;
-                // Preencher tela cheia baseando-se no viewport imaginário
-                const x = (seed + time * 0.1) % (worldWidth * 2) - worldWidth;
-                const yStart = (seed * 1.5 + time * speed) % (worldHeight * 2) - worldHeight;
+            // Lightning Flash (Rare but full screen bump)
+            const lightningOdds = Math.sin(time * 0.005) + Math.sin(time * 0.001) * 0.5;
+            if (lightningOdds > 1.4 && Math.random() > 0.8) {
+                ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.15 + 0.1})`;
+                // Preenche a tela independente do transform da câmera
+                ctx.save();
+                ctx.resetTransform();
+                ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
+                ctx.restore();
+            }
 
-                ctx.beginPath();
-                ctx.moveTo(x, yStart);
-                ctx.lineTo(x - 8, yStart + 24); // Chuva mais longa e deitada
-                ctx.stroke();
+            // Draw Raindrops and Splashes
+            ctx.strokeStyle = 'rgba(200, 220, 255, 0.4)'; // Mais sutil a linha e rápida
+            ctx.fillStyle = 'rgba(200, 220, 255, 0.2)';   // Para os splashes
+            ctx.lineWidth = 1;
+
+            for (let i = 0; i < count; i++) {
+                const seed = i * 997.123;
+
+                // Posição que varre um viewport imaginário em loop contínuo
+                const progressY = (time * speed + seed * 1.5) % (worldHeight * 2) - worldHeight;
+                const progressX = (time * 0.2 + seed) % (worldWidth * 2) - worldWidth;
+
+                // Queda simulada de zAlto -> zBaixo
+                const zDrop = progressY % 600;
+
+                // A "Gota" que já caiu vira splash. Para simplificar, a gota cai e quando zDrop estiver perto de 550 a 600, faz o splash
+                if (zDrop > 550) {
+                    // Splash isométrico no chão
+                    const splashSize = ((zDrop - 550) / 50) * 8; // expande até 8px
+                    const splashAlpha = 1 - ((zDrop - 550) / 50); // fade out
+                    ctx.save();
+                    ctx.globalAlpha = splashAlpha;
+                    ctx.beginPath();
+                    ctx.ellipse(progressX, progressY, splashSize, splashSize * 0.5, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    // Anel (onda da poça)
+                    ctx.strokeStyle = `rgba(200, 220, 255, ${splashAlpha * 0.5})`;
+                    ctx.stroke();
+                    ctx.restore();
+                } else {
+                    // Cabelo de chuvisco caindo em diagonal
+                    ctx.beginPath();
+                    ctx.moveTo(progressX, progressY);
+                    ctx.lineTo(progressX - 12, progressY + 36); // Chuva rápida angular
+                    ctx.stroke();
+                }
             }
         } else if (this.weather === 'SNOW') {
             ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
