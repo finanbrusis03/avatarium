@@ -190,50 +190,25 @@ export class StructureManager {
         const fieldW = 12;
         const fieldH = 8;
 
-        // Try to find a valid spot
-        for (let tries = 0; tries < 2000; tries++) {
-            const x = rng.nextInt(2, w - fieldW - 2);
-            const y = rng.nextInt(2, h - fieldH - 2);
+        // Force to the right corner (num quadrado verde no canto direito)
+        const fx = Math.max(2, w - fieldW - 4);
+        const fy = Math.max(4, Math.floor(h / 6)); // Top-ish right
 
-            // Avoid Center Plaza
-            const cx = w / 2, cy = h / 2;
-            if (Math.abs(x - cx) < 8 && Math.abs(y - cy) < 8) continue;
-
-            const beachY = h - 16;
-            if (y > beachY) continue;
-
-            if (this.checkOverlap(x, y, fieldW, fieldH)) continue;
-
-            // Check Terrain
-            let validTerrain = true;
-            for (let dx = 0; dx < fieldW; dx++) {
-                for (let dy = 0; dy < fieldH; dy++) {
-                    const hVal = noise.noise2D((x + dx) * 0.1, (y + dy) * 0.1);
-                    if (hVal < 0.2 || hVal > 0.7) {
-                        validTerrain = false; break;
-                    }
+        // Flatten the terrain and force grass
+        for (let dx = 0; dx < fieldW; dx++) {
+            for (let dy = 0; dy < fieldH; dy++) {
+                if (fx + dx < w && fy + dy < h) {
+                    const tileIdx = (fy + dy) * w + (fx + dx);
+                    terrain.tiles[tileIdx] = Terrain.TILE_TYPES.indexOf('SOCCER_GRASS');
                 }
-                if (!validTerrain) break;
-            }
-
-            if (validTerrain) {
-                // Ao invés de ser um bloco voador cego, vamos gravar os Tiles originais permanentemente:
-                for (let dx = 0; dx < fieldW; dx++) {
-                    for (let dy = 0; dy < fieldH; dy++) {
-                        const tileIdx = (y + dy) * w + (x + dx);
-                        terrain.tiles[tileIdx] = Terrain.TILE_TYPES.indexOf('SOCCER_GRASS');
-                    }
-                }
-
-                // Nós ainda registramos a estrutura lógica SOMENTE para instanciar POSTS/TRAVES no renderizador lá em cima!
-                this.structures.push({
-                    id: 'soccer_field_main',
-                    type: 'SOCCER_FIELD',
-                    x, y, width: fieldW, height: fieldH
-                });
-                break;
             }
         }
+
+        this.structures.push({
+            id: 'soccer_field_main',
+            type: 'SOCCER_FIELD',
+            x: fx, y: fy, width: fieldW, height: fieldH
+        });
     }
 
     private checkOverlap(x: number, y: number, w: number, h: number): boolean {

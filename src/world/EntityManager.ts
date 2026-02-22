@@ -72,8 +72,8 @@ export function createCreature(name: string, x: number, y: number, variant: numb
         loadout: generateLoadout(seed),
         gender,
 
-        // Generate a random speed multiplier between 0.6 and 1.6
-        speedMultiplier: 0.6 + rng.nextFloat(),
+        // Generate a random speed multiplier between 0.5 and 1.0
+        speedMultiplier: 0.5 + (rng.nextFloat() * 0.5),
         temperament: rng.pick(temperaments),
         animPhase: rng.nextFloat() * Math.PI * 2,
 
@@ -108,7 +108,7 @@ export function hydrateCreature(dbData: any): Creature {
         variantSeed: variant_seed,
         gender: gender || 'M',
 
-        speedMultiplier: 0.6 + rng.nextFloat(),
+        speedMultiplier: 0.5 + (rng.nextFloat() * 0.5),
         temperament: rng.pick(temperaments),
         animPhase: rng.nextFloat() * Math.PI * 2,
 
