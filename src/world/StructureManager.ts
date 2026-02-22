@@ -62,7 +62,31 @@ export class StructureManager {
             });
         }
 
-        // 1. Place Houses (Organically along roads)
+        // 1. Place Soccer Field (Prioritize placement so houses don't overlap)
+        const fieldW = 12;
+        const fieldH = 8;
+
+        // Force to the right corner (num quadrado verde no canto direito)
+        const fx = Math.max(2, w - fieldW - 4);
+        const fy = Math.max(4, Math.floor(h / 6)); // Top-ish right
+
+        // Flatten the terrain and force grass
+        for (let dx = 0; dx < fieldW; dx++) {
+            for (let dy = 0; dy < fieldH; dy++) {
+                if (fx + dx < w && fy + dy < h) {
+                    const tileIdx = (fy + dy) * w + (fx + dx);
+                    terrain.tiles[tileIdx] = Terrain.TILE_TYPES.indexOf('SOCCER_GRASS');
+                }
+            }
+        }
+
+        this.structures.push({
+            id: 'soccer_field_main',
+            type: 'SOCCER_FIELD',
+            x: fx, y: fy, width: fieldW, height: fieldH
+        });
+
+        // 2. Place Houses (Organically along roads)
         const houseCount = Math.floor((w * h) / 100);
 
         let attempts = 0;
@@ -186,29 +210,7 @@ export class StructureManager {
             lampCount++;
         }
 
-        // 3. Place Soccer Field (Exactly 1) e modificar o mapa `tiles` do jogo proceduralmente
-        const fieldW = 12;
-        const fieldH = 8;
-
-        // Force to the right corner (num quadrado verde no canto direito)
-        const fx = Math.max(2, w - fieldW - 4);
-        const fy = Math.max(4, Math.floor(h / 6)); // Top-ish right
-
-        // Flatten the terrain and force grass
-        for (let dx = 0; dx < fieldW; dx++) {
-            for (let dy = 0; dy < fieldH; dy++) {
-                if (fx + dx < w && fy + dy < h) {
-                    const tileIdx = (fy + dy) * w + (fx + dx);
-                    terrain.tiles[tileIdx] = Terrain.TILE_TYPES.indexOf('SOCCER_GRASS');
-                }
-            }
-        }
-
-        this.structures.push({
-            id: 'soccer_field_main',
-            type: 'SOCCER_FIELD',
-            x: fx, y: fy, width: fieldW, height: fieldH
-        });
+        // Soccer field placement moved before houses to fix overlap.
     }
 
     private checkOverlap(x: number, y: number, w: number, h: number): boolean {
