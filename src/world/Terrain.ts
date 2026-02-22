@@ -276,6 +276,28 @@ export class Terrain {
                         ctx.ellipse(p.x, p.y + 2, 4, 2, 0, 0, Math.PI * 2);
                         ctx.fill();
                     }
+                } else if (type === 'ROAD') {
+                    // Pedestrian crosswalks near intersections (assuming block size of 10)
+                    const yMod = y % 10;
+                    const xMod = x % 10;
+
+                    // Pinta faixa em pontos adjacentes aos cruzamentos
+                    if ((xMod === 0 && (yMod === 2 || yMod === 8)) || (yMod === 0 && (xMod === 2 || xMod === 8))) {
+                        ctx.save();
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                        ctx.translate(p.x, p.y);
+
+                        // Rotaciona as listras de acordo com a via (Iso math angle aprox)
+                        const isVerticalRoad = xMod === 0;
+                        ctx.rotate(isVerticalRoad ? (Math.PI / 6) : (-Math.PI / 6));
+
+                        // 4 Listras Brancas estilo Abbey Road
+                        for (let i = -1.5; i <= 1.5; i += 1) {
+                            ctx.fillRect(i * 8 - 2, -12, 4, 24);
+                        }
+
+                        ctx.restore();
+                    }
                 } else if (type === 'PLAZA') {
                     const cx = Math.floor(this.width / 2);
                     const cy = Math.floor(this.height / 2);

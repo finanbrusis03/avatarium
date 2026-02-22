@@ -158,7 +158,15 @@ export function PublicWorld() {
             return false;
         };
 
-        setCreatures(prev => updateCreatures(prev, deltaTime, mapSize, checkCollision));
+        // Dynamic tile fetcher
+        const getTileType = (x: number, y: number): string => {
+            if (rendererRef.current && rendererRef.current.terrainInstance) {
+                return rendererRef.current.terrainInstance.getTile(Math.floor(x), Math.floor(y));
+            }
+            return 'GRASS';
+        };
+
+        setCreatures(prev => updateCreatures(prev, deltaTime, mapSize, checkCollision, getTileType));
 
         setCamera(prev => {
             // ... strict camera updates ...

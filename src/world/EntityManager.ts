@@ -39,6 +39,8 @@ export interface Creature {
     temperament: Temperament;
     gender: 'M' | 'F';
     speedMultiplier: number;
+    scaleX: number; // Biótipo: Largura
+    scaleY: number; // Biótipo: Altura
 
     // Animation State (Runtime only)
     animPhase: number;
@@ -77,6 +79,10 @@ export function createCreature(name: string, x: number, y: number, variant: numb
         temperament: rng.pick(temperaments),
         animPhase: rng.nextFloat() * Math.PI * 2,
 
+        // Variação orgânica de corpo (0.9 a 1.1)
+        scaleX: 0.9 + (rng.nextFloat() * 0.2),
+        scaleY: 0.9 + (rng.nextFloat() * 0.2),
+
         isSpawning: true,
         spawnTime: Date.now(),
         spawnDuration: 600,
@@ -111,6 +117,9 @@ export function hydrateCreature(dbData: any): Creature {
         speedMultiplier: 0.5 + (rng.nextFloat() * 0.5),
         temperament: rng.pick(temperaments),
         animPhase: rng.nextFloat() * Math.PI * 2,
+
+        scaleX: 0.9 + (rng.nextFloat() * 0.2),
+        scaleY: 0.9 + (rng.nextFloat() * 0.2),
 
         isSpawning: true,
         spawnTime: Date.now(),

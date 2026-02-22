@@ -186,7 +186,20 @@ export class WorldRenderer {
                 if (c.id === selectedId) {
                     this.avatarRenderer.drawHighlight(c, 'selected');
                 }
-                this.avatarRenderer.draw(c, camera, time);
+
+                // Calcular proximidade de fontes para o reflexo azulado
+                let nearFountain = false;
+                for (const s of this.structureManager.structures) {
+                    if (s.type === 'FOUNTAIN') {
+                        const dist = Math.abs(c.x - s.x) + Math.abs(c.y - s.y);
+                        if (dist < 5) {
+                            nearFountain = true;
+                            break;
+                        }
+                    }
+                }
+
+                this.avatarRenderer.draw(c, camera, time, lightLevel, this.weather, nearFountain);
             } else { // All other structure types
                 const s = item.obj as Structure;
                 ctx.save();

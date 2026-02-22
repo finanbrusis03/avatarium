@@ -16,7 +16,7 @@ const MAX_PATH_ATTEMPTS = 5;
 let pathfinder: Pathfinding | null = null;
 let lastMapSize = 0;
 
-export function updateCreatures(creatures: Creature[], deltaTime: number, mapSize: number, checkCollision: CollisionCheck): Creature[] {
+export function updateCreatures(creatures: Creature[], deltaTime: number, mapSize: number, checkCollision: CollisionCheck, getTileType?: (x: number, y: number) => string): Creature[] {
     // 1. Build occupancy map (Current and Target tiles)
     const occupied = new Set<string>();
     creatures.forEach(c => {
@@ -53,7 +53,16 @@ export function updateCreatures(creatures: Creature[], deltaTime: number, mapSiz
 
         // STATE: MOVING
         if (creature.targetX !== undefined && creature.targetY !== undefined) {
-            creature.moveProgress += (deltaTime / 1000) * MOVE_SPEED * (creature.speedMultiplier || 1);
+            // Apply sand slowdown
+            let terrainSpeed = 1.0;
+            if (getTileType) {
+                const currentTile = getTileType(creature.x, creature.y);
+                if (currentTile === 'SAND') {
+                    terrainSpeed = 0.6; // 40% slower on sand
+                }
+            }
+
+            creature.moveProgress += (deltaTime / 1000) * MOVE_SPEED * (creature.speedMultiplier || 1) * terrainSpeed;
 
             if (creature.moveProgress >= 1) {
                 creature.x = creature.targetX;
