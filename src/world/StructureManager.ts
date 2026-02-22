@@ -63,12 +63,12 @@ export class StructureManager {
         }
 
         // 1. Place Soccer Field (Prioritize placement so houses don't overlap)
-        const fieldW = 10;
+        const fieldW = 9;
         const fieldH = 7;
 
-        // Force to the extreme right corner
-        const fx = Math.max(2, w - fieldW - 2); // Closer to right edge
-        const fy = Math.max(8, Math.floor(h / 4)); // Lower down to avoid top road collision
+        // Force to the extreme top-right block (city block bounded by roads)
+        const fx = w - 9; // Exactly covers the space from the last vertical road to the map edge
+        const fy = 1;     // Exactly covers the space from the top horizontal road downwards
 
         // Flatten the terrain and force grass
         for (let dx = 0; dx < fieldW; dx++) {
