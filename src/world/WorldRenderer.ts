@@ -180,7 +180,7 @@ export class WorldRenderer {
         // 3. Draw Items
         for (const item of items) {
             if (item.type === 'PROP') {
-                this.terrain.drawProp(ctx, item.obj as Prop, time);
+                this.terrain.drawProp(ctx, item.obj as Prop, time, lightLevel);
             } else if (item.type === 'CREATURE') {
                 const c = item.obj as Creature;
                 if (c.id === selectedId) {
@@ -206,7 +206,7 @@ export class WorldRenderer {
                     this.drawSoccerField(ctx, s);
                 } else {
                     // Houses and other generic structures
-                    this.drawStructure(ctx, s, lightLevel);
+                    this.drawStructure(ctx, s, lightLevel, time);
                 }
                 ctx.restore();
             }
@@ -343,7 +343,7 @@ export class WorldRenderer {
         ctx.restore();
     }
 
-    private drawStructure(ctx: CanvasRenderingContext2D, s: Structure, lightLevel: number) {
+    private drawStructure(ctx: CanvasRenderingContext2D, s: Structure, lightLevel: number, time: number) {
         // This method now specifically handles 'HOUSE_SMALL' and 'HOUSE_MEDIUM' (or generic buildings)
         // Other structure types like FOUNTAIN, LAMP_POST, BENCH are handled by their own methods.
 
@@ -360,16 +360,28 @@ export class WorldRenderer {
         ctx.strokeStyle = isHouse ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.45)';
         ctx.lineJoin = 'round';
 
-        // Base Shadow
+        // Dynamic Drop Shadow
         ctx.save();
-        ctx.globalAlpha = isHouse ? 0.2 : 0.3; // Softer shadow for small houses
+        const sunAngle = (time * 0.0001) % (Math.PI * 2);
+        // Shadow fades out during the night
+        const shadowOpacity = Math.max(0, (lightLevel - 0.4)) * 0.5;
+
+        ctx.globalAlpha = isHouse ? shadowOpacity * 0.7 : shadowOpacity;
         ctx.fillStyle = '#000000';
+
+        // Shadow grows longer as sun goes down (lightLevel drops towards 0.4)
+        const shadowLength = 30 + (1 - lightLevel) * 60;
+        const dx = Math.cos(sunAngle) * shadowLength;
+        const dy = (Math.sin(sunAngle) * shadowLength) * 0.5; // Flatten for ISO
+
         ctx.beginPath();
-        ctx.moveTo(p4.x - 10, p4.y + 5);
-        ctx.lineTo(p3.x, p3.y + 10);
-        ctx.lineTo(p2.x + 10, p2.y + 5);
-        ctx.lineTo(p2.x, p2.y - 10);
-        ctx.lineTo(p4.x, p4.y - 10);
+        ctx.moveTo(p4.x, p4.y);
+        ctx.lineTo(p4.x + dx, p4.y - height + dy);
+        ctx.lineTo(p3.x + dx, p3.y - height + dy);
+        ctx.lineTo(p2.x + dx, p2.y - height + dy);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.lineTo(p3.x, p3.y);
+        ctx.closePath();
         ctx.fill();
         ctx.restore();
 

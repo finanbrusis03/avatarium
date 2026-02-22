@@ -52,9 +52,9 @@ export class Terrain {
                 if (distToCenter < 6) {
                     typeIdx = 5; // Central Plaza (PLAZA - index 5)
                 } else if (y >= waterEdge) {
-                    typeIdx = 0; // Pure Water at the very bottom (WATER - index 0)
-                } else if (y >= sandEdge + (h * 3)) {
-                    typeIdx = 1; // Wide Beach Sand (SAND - index 1)
+                    typeIdx = 0; // Pure Water at the very bottom
+                } else if (y >= sandEdge - 1 + (h * 6)) {
+                    typeIdx = 1; // Wide Beach Sand with heavily organic/wavy edge
                 } else {
                     // Normal Noise Generation
                     if (h < 0.15) typeIdx = 0; // Small inland ponds (WATER)
@@ -118,6 +118,10 @@ export class Terrain {
 
     public getPropAt(x: number, y: number): Prop | undefined {
         return this.props.get(`${x},${y}`);
+    }
+
+    public removePropAt(x: number, y: number) {
+        this.props.delete(`${x},${y}`);
     }
 
     public getTileColor(type: TileType): string {
@@ -201,6 +205,15 @@ export class Terrain {
                 if (type === 'GRASS') {
                     ctx.fillStyle = '#4CAF50';
                     ctx.globalAlpha = 0.8;
+                    const noiseVal = this.noise.noise2D(x * 0.2, y * 0.2);
+
+                    // Darker organic patches in the grass
+                    if (noiseVal < 0.3) {
+                        ctx.fillStyle = '#388E3C';
+                    } else if (noiseVal > 0.7) {
+                        ctx.fillStyle = '#66BB6A';
+                    }
+
                     ctx.beginPath();
                     for (let i = 0; i < 4; i++) {
                         const rx = p.x - (TILE_WIDTH * 0.3) + (Math.sin(seed + i * 1.1) * 0.5 + 0.5) * (TILE_WIDTH * 0.6);
@@ -209,6 +222,16 @@ export class Terrain {
                         ctx.arc(rx, ry, 2 + (i % 2), 0, Math.PI * 2);
                     }
                     ctx.fill();
+
+                    // Tiny generic flowers randomly 
+                    const flowVal = (Math.sin(seed * 45.123) * 1000) % 1;
+                    if (flowVal > 0.5 && flowVal < 0.55) {
+                        ctx.fillStyle = flowVal > 0.52 ? '#FFEB3B' : '#FFF';
+                        ctx.globalAlpha = 0.9;
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y + TILE_HEIGHT / 4, 1.5, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
                 } else if (type === 'SOCCER_GRASS') {
                     // Lines are drawn separate, grass texture only
                     ctx.fillStyle = '#2E7D32';
@@ -236,14 +259,23 @@ export class Terrain {
                     ctx.fillStyle = '#FBC02D';
                     ctx.globalAlpha = 0.4;
                     ctx.beginPath();
-                    // More and smaller sand grains for "beachy" feel
-                    for (let i = 0; i < 12; i++) {
+
+                    // Base sand grains
+                    for (let i = 0; i < 8; i++) {
                         const rx = p.x - (TILE_WIDTH * 0.45) + (Math.sin(seed * i + 3.3) * 0.5 + 0.5) * (TILE_WIDTH * 0.9);
                         const ry = p.y - (TILE_HEIGHT * 0.45) + (Math.cos(seed * i + 4.4) * 0.5 + 0.5) * (TILE_HEIGHT * 0.9);
                         ctx.moveTo(rx, ry);
                         ctx.arc(rx, ry, Math.random() < 0.5 ? 0.8 : 1.2, 0, Math.PI * 2);
                     }
                     ctx.fill();
+
+                    // Larger dark dunes/footprint impressions occasionally
+                    if (seed % 1 < 0.2) {
+                        ctx.fillStyle = 'rgba(215, 153, 34, 0.3)';
+                        ctx.beginPath();
+                        ctx.ellipse(p.x, p.y + 2, 4, 2, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
                 } else if (type === 'PLAZA') {
                     const cx = Math.floor(this.width / 2);
                     const cy = Math.floor(this.height / 2);
@@ -400,7 +432,7 @@ export class Terrain {
         }
     }
 
-    public drawProp(ctx: CanvasRenderingContext2D, prop: Prop, time: number = 0) {
+    public drawProp(ctx: CanvasRenderingContext2D, prop: Prop, time: number = 0, lightLevel: number = 1.0) {
         const p = isoToScreen(prop.x, prop.y);
         const cx = p.x;
         const cy = p.y;
@@ -413,6 +445,25 @@ export class Terrain {
 
         ctx.save();
         ctx.translate(cx, cy);
+
+        // Dynamic Nature Shadow
+        if (prop.type === 'TREE' || prop.type === 'BUSH' || prop.type === 'UMBRELLA' || prop.type === 'ROCK') {
+            const sunAngle = (time * 0.0001) % (Math.PI * 2);
+            const shadowOpacity = Math.max(0, (lightLevel - 0.4)) * 0.4;
+            let shadowLen = prop.type === 'TREE' ? 40 : (prop.type === 'BUSH' ? 15 : 10);
+            shadowLen += (1 - lightLevel) * 20;
+
+            ctx.save();
+            ctx.globalAlpha = shadowOpacity;
+            ctx.fillStyle = '#000000';
+            const dx = Math.cos(sunAngle) * shadowLen;
+            const dy = (Math.sin(sunAngle) * shadowLen) * 0.5;
+
+            ctx.beginPath();
+            ctx.ellipse(dx / 2, dy / 2, shadowLen / 2, shadowLen / 4, Math.atan2(dy, dx), 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
 
         if (prop.type === 'TREE') {
             const variant = prop.variant % 3;

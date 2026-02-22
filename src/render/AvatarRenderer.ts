@@ -1,6 +1,6 @@
 import { type Camera } from '../engine/Camera';
 import { type Creature } from '../world/EntityManager';
-import { isoToScreen, TILE_WIDTH, TILE_HEIGHT } from '../engine/IsoMath';
+import { isoToScreen } from '../engine/IsoMath';
 import type { AvatarRig, AnimState, CosmeticSlot } from '../cosmetics/Types';
 import { globalParticleSystem } from '../engine/ParticleSystem';
 
@@ -11,7 +11,7 @@ export class AvatarRenderer {
         this.ctx = ctx;
     }
 
-    public draw(creature: Creature, _camera: Camera, time: number) {
+    public draw(creature: Creature, _camera: Camera, time: number, lightLevel: number = 1.0) {
         const { ctx } = this;
         // Interpolate position
         let renderX = creature.x;
@@ -82,7 +82,7 @@ export class AvatarRenderer {
         }
 
         // Shadow
-        this.drawShadow(centerX, centerY);
+        this.drawShadow(centerX, centerY, time, lightLevel);
 
         // RIG SETUP
         const baseY = centerY - 15 - Math.abs(bob) + groundOffset;
@@ -168,11 +168,20 @@ export class AvatarRenderer {
         }
     }
 
-    private drawShadow(x: number, y: number) {
-        this.ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    private drawShadow(x: number, y: number, time: number, lightLevel: number) {
+        const sunAngle = (time * 0.0001) % (Math.PI * 2);
+        const shadowOpacity = Math.max(0, (lightLevel - 0.4)) * 0.4;
+        const shadowLen = 15 + (1 - lightLevel) * 20;
+
+        this.ctx.save();
+        this.ctx.fillStyle = `rgba(0,0,0,${shadowOpacity})`;
+        this.ctx.translate(x, y);
+        this.ctx.rotate(sunAngle);
+
         this.ctx.beginPath();
-        this.ctx.ellipse(x, y, TILE_WIDTH / 3.5, TILE_HEIGHT / 3.5, 0, 0, Math.PI * 2);
+        this.ctx.ellipse(shadowLen / 2, 0, shadowLen / 2, 3, 0, 0, Math.PI * 2);
         this.ctx.fill();
+        this.ctx.restore();
     }
 
     private drawBodyBase(c: Creature, rig: AvatarRig, _anim: AnimState, isSitting: boolean, heightMultiplier: number, finalY: number) {

@@ -67,7 +67,8 @@ export class StructureManager {
         const fieldH = 7;
 
         // Force to the extreme top-right block (city block bounded by roads)
-        const fx = w - 9; // Exactly covers the space from the last vertical road to the map edge
+        const lastRoadX = Math.floor((w - 10) / 10) * 10;
+        const fx = lastRoadX + 1; // Exactly covers the space from the last vertical road to the map edge
         const fy = 1;     // Exactly covers the space from the top horizontal road downwards
 
         // Flatten the terrain and force grass
@@ -77,6 +78,8 @@ export class StructureManager {
                     const tileIdx = (fy + dy) * w + (fx + dx);
                     // Override any roads or dirt with grass to ensure clean field
                     terrain.tiles[tileIdx] = Terrain.TILE_TYPES.indexOf('SOCCER_GRASS');
+                    // Destroy any procedurally generated plant within field
+                    terrain.removePropAt(fx + dx, fy + dy);
                 }
             }
         }
