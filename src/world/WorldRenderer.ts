@@ -1008,6 +1008,51 @@ export class WorldRenderer {
             ctx.restore();
         }
 
+        // 3. Ship (Cruising through the water area at the bottom)
+        if (eventCycle >= 130 && eventCycle < 180) {
+            const progress = (eventCycle - 130) / 50; // 0 to 1
+            const yWaterBase = this.canvasHeight - 120;
+            const xOffset = this.canvasWidth + 200 - (this.canvasWidth + 400) * progress;
+            const yOffset = yWaterBase + Math.sin(time * 0.001) * 8; // gentle bobbing
+
+            ctx.save();
+            ctx.translate(xOffset, yOffset);
+
+            // Ship Hull (Casco)
+            ctx.fillStyle = '#37474F';
+            ctx.beginPath();
+            ctx.moveTo(-60, 0);
+            ctx.lineTo(60, 0);
+            ctx.lineTo(50, 25);
+            ctx.lineTo(-70, 25);
+            ctx.closePath();
+            ctx.fill();
+
+            // Upper Deck (Convés)
+            ctx.fillStyle = '#ECEFF1';
+            ctx.fillRect(-40, -15, 80, 15);
+            ctx.fillRect(-20, -25, 40, 10);
+
+            // Windows
+            ctx.fillStyle = '#81D4FA';
+            for (let i = 0; i < 3; i++) {
+                ctx.fillRect(-30 + i * 25, -10, 10, 6);
+            }
+
+            // Chimney with Smoke
+            ctx.fillStyle = '#263238';
+            ctx.fillRect(10, -35, 12, 10);
+
+            // Smoke particles-like (Static ellipses)
+            ctx.fillStyle = 'rgba(200,200,200,0.4)';
+            const smokeCycle = (time * 0.005) % 1;
+            ctx.beginPath();
+            ctx.arc(16, -45 - smokeCycle * 20, 8 + smokeCycle * 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
         ctx.restore();
     }
 
