@@ -223,7 +223,19 @@ export class WorldRenderer {
         this.drawClouds(ctx, time);
 
         // 4.3 Weather Effects (Rain/Snow) - Draw above everything but below UI
-        this.drawWeather(ctx, time);
+        // Weather Cycle Logic (e.g. 2 mins of rain every 10 mins)
+        const globalTimeSec = Math.floor(Date.now() / 1000);
+        const wCycle = globalTimeSec % 600;
+        if (wCycle < 120) {
+            this.weather = 'RAIN';
+        } else {
+            this.weather = 'NONE';
+        }
+
+        this.drawWeather(ctx, time, camera);
+
+        // 4.4 Rare Events (Airplane, Balloon, Ship)
+        this.drawRareEvents(ctx, time);
 
         ctx.restore(); // Restore transform for Overlay
 
@@ -889,15 +901,118 @@ export class WorldRenderer {
         ctx.restore();
     }
 
-    private drawWeather(ctx: CanvasRenderingContext2D, time: number) {
+    private drawRareEvents(ctx: CanvasRenderingContext2D, time: number) {
+        ctx.save();
+        const globalTimeSec = Math.floor(Date.now() / 1000);
+
+        // Rare Event Cycle (Every 3 mins roughly, an event passes)
+        const eventCycle = globalTimeSec % 180;
+
+        // Let's place events on screen coords to make them easy to see and detached from deep ISO math
+        ctx.resetTransform();
+
+        // 1. Airplane (High in the sky, passes left to right)
+        if (eventCycle >= 0 && eventCycle < 30) {
+            const progress = eventCycle / 30; // 0 to 1
+            const xOffset = -100 + (this.canvasWidth + 200) * progress;
+            const yOffset = 100 + Math.sin(time * 0.002) * 20; // gentle bob
+
+            ctx.save();
+            ctx.translate(xOffset, yOffset);
+            ctx.scale(0.5, 0.5); // small
+
+            // Draw a simple shadow directly below on the screen since it's far up
+            ctx.fillStyle = 'rgba(0,0,0,0.1)';
+            ctx.beginPath();
+            ctx.ellipse(-50, 200, 30, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Simple Airplane Silhouette
+            ctx.fillStyle = '#CFD8DC';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 30, 8, 0, 0, Math.PI * 2); // fuselage
+            ctx.fill();
+            ctx.fillStyle = '#B0BEC5';
+            ctx.beginPath();
+            ctx.moveTo(10, -5); ctx.lineTo(-10, -30); ctx.lineTo(-15, -30); ctx.lineTo(-5, -5); // right wing
+            ctx.moveTo(10, 5); ctx.lineTo(-20, 40); ctx.lineTo(-25, 40); ctx.lineTo(-5, 5);   // left wing
+            ctx.fill();
+            // tail
+            ctx.beginPath();
+            ctx.moveTo(-25, -2); ctx.lineTo(-35, -15); ctx.lineTo(-38, -15); ctx.lineTo(-30, -2);
+            ctx.fill();
+
+            // Banner
+            ctx.strokeStyle = '#FFFAFA';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(-35, 0); ctx.lineTo(-50, 5);
+            ctx.stroke();
+            ctx.fillStyle = '#E53935';
+            ctx.fillRect(-100, 0, 50, 15);
+            ctx.fillStyle = '#FFF';
+            ctx.font = 'bold 10px monospace';
+            ctx.fillText("AVATARIUM", -95, 11);
+
+            ctx.restore();
+        }
+
+        // 2. Hot Air Balloon (passes bottom to top on the right)
+        if (eventCycle >= 60 && eventCycle < 120) {
+            const progress = (eventCycle - 60) / 60; // 0 to 1, slow
+            const xOffset = this.canvasWidth - 150 + Math.sin(time * 0.001) * 30;
+            const yOffset = this.canvasHeight + 100 - (this.canvasHeight + 200) * progress;
+
+            ctx.save();
+            ctx.translate(xOffset, yOffset);
+
+            // Balloon Envelope
+            ctx.fillStyle = '#D32F2F'; // Red balloon
+            ctx.beginPath();
+            ctx.moveTo(0, 15);
+            ctx.bezierCurveTo(20, 15, 30, -5, 25, -20);
+            ctx.bezierCurveTo(15, -40, -15, -40, -25, -20);
+            ctx.bezierCurveTo(-30, -5, -20, 15, 0, 15);
+            ctx.fill();
+
+            // Stripes
+            ctx.fillStyle = '#FFC107'; // Yellow stripe
+            ctx.beginPath();
+            ctx.moveTo(0, 15);
+            ctx.bezierCurveTo(10, 15, 15, -5, 10, -20);
+            ctx.bezierCurveTo(5, -40, -5, -40, -10, -20);
+            ctx.bezierCurveTo(-15, -5, -10, 15, 0, 15);
+            ctx.fill();
+
+            // Basket
+            ctx.fillStyle = '#6D4C41';
+            ctx.fillRect(-5, 25, 10, 8);
+            ctx.strokeStyle = '#5D4037';
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(-3, 15); ctx.lineTo(-4, 25); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(3, 15); ctx.lineTo(4, 25); ctx.stroke();
+
+            ctx.restore();
+        }
+
+        ctx.restore();
+    }
+
+    private drawWeather(ctx: CanvasRenderingContext2D, time: number, camera: Camera) {
         if (this.weather === 'NONE') return;
 
-        const count = this.weather === 'RAIN' ? 100 : 50;
-        const speed = this.weather === 'RAIN' ? 0.8 : 0.2;
+        const count = this.weather === 'RAIN' ? 150 : 50; // Aumento das gotas para ficar denso
+        const speed = this.weather === 'RAIN' ? 1.2 : 0.2; // Mais rápido
 
         ctx.save();
-        const worldWidth = this.config.width * 64;
-        const worldHeight = this.config.height * 32;
+
+        // Define viewport local limits based on camera zoom. This removes all lag.
+        const viewportWidth = (this.canvasWidth / camera.zoom) + 200;
+        const viewportHeight = (this.canvasHeight / camera.zoom) + 200;
+
+        // Centralize effect on camera target
+        const cx = camera.x;
+        const cy = camera.y;
 
         if (this.weather === 'RAIN') {
             // Lightning Flash (Rare but full screen bump)
@@ -919,32 +1034,37 @@ export class WorldRenderer {
             for (let i = 0; i < count; i++) {
                 const seed = i * 997.123;
 
-                // Posição que varre um viewport imaginário em loop contínuo
-                const progressY = (time * speed + seed * 1.5) % (worldHeight * 2) - worldHeight;
-                const progressX = (time * 0.2 + seed) % (worldWidth * 2) - worldWidth;
+                // Wrap droplets tightly within the Camera Viewport only! No massive modulus!
+                const localX = (time * 0.2 + seed * 14.5) % viewportWidth;
+                const localY = (time * speed + seed * 8.5) % viewportHeight;
 
-                // Queda simulada de zAlto -> zBaixo
-                const zDrop = progressY % 600;
+                const progressX = (cx - viewportWidth / 2) + localX;
+                const progressY = (cy - viewportHeight / 2) + localY;
 
-                // A "Gota" que já caiu vira splash. Para simplificar, a gota cai e quando zDrop estiver perto de 550 a 600, faz o splash
-                if (zDrop > 550) {
-                    // Splash isométrico no chão
-                    const splashSize = ((zDrop - 550) / 50) * 8; // expande até 8px
-                    const splashAlpha = 1 - ((zDrop - 550) / 50); // fade out
+                // Drop collision logic based on Y pos inside the bounding local modulus
+                const zDrop = localY;
+
+                // Splashes agora estouram na metade final inferior do viewport height simulando chegar no chão
+                if (zDrop > (viewportHeight - 150)) {
+                    // Splash isométrico no chão MAIOR!
+                    const ratio = (zDrop - (viewportHeight - 150)) / 150; // 0 to 1
+                    const splashSize = ratio * 16; // Expand to 16px (2x bigger)
+                    const splashAlpha = 1 - ratio; // fade out
                     ctx.save();
                     ctx.globalAlpha = splashAlpha;
                     ctx.beginPath();
+                    // Splash base (fill)
                     ctx.ellipse(progressX, progressY, splashSize, splashSize * 0.5, 0, 0, Math.PI * 2);
                     ctx.fill();
-                    // Anel (onda da poça)
-                    ctx.strokeStyle = `rgba(200, 220, 255, ${splashAlpha * 0.5})`;
+                    // Splash ring (stroke) mais escuro pra destacar
+                    ctx.strokeStyle = `rgba(180, 200, 255, ${splashAlpha * 0.8})`;
                     ctx.stroke();
                     ctx.restore();
                 } else {
-                    // Cabelo de chuvisco caindo em diagonal
+                    // Cabelo de chuvisco caindo em diagonal (mais rápido e logo)
                     ctx.beginPath();
                     ctx.moveTo(progressX, progressY);
-                    ctx.lineTo(progressX - 12, progressY + 36); // Chuva rápida angular
+                    ctx.lineTo(progressX - 16, progressY + 45);
                     ctx.stroke();
                 }
             }
@@ -952,11 +1072,15 @@ export class WorldRenderer {
             ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
             for (let i = 0; i < count; i++) {
                 const seed = i * 1234;
-                const x = (seed + Math.sin(time * 0.001 + seed) * 50) % worldWidth;
-                const y = (seed * 0.8 + time * speed) % worldHeight;
+
+                const localX = (seed + Math.sin(time * 0.001 + seed) * 50) % viewportWidth;
+                const localY = (seed * 0.8 + time * speed) % viewportHeight;
+
+                const progressX = (cx - viewportWidth / 2) + localX;
+                const progressY = (cy - viewportHeight / 2) + localY;
 
                 ctx.beginPath();
-                ctx.arc(x, y, 2, 0, Math.PI * 2);
+                ctx.arc(progressX, progressY, 2, 0, Math.PI * 2);
                 ctx.fill();
             }
         }
