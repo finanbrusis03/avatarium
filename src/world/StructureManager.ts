@@ -63,18 +63,19 @@ export class StructureManager {
         }
 
         // 1. Place Soccer Field (Prioritize placement so houses don't overlap)
-        const fieldW = 12;
-        const fieldH = 8;
+        const fieldW = 10;
+        const fieldH = 7;
 
-        // Force to the right corner (num quadrado verde no canto direito)
-        const fx = Math.max(2, w - fieldW - 4);
-        const fy = Math.max(4, Math.floor(h / 6)); // Top-ish right
+        // Force to the extreme right corner
+        const fx = Math.max(2, w - fieldW - 2); // Closer to right edge
+        const fy = Math.max(8, Math.floor(h / 4)); // Lower down to avoid top road collision
 
         // Flatten the terrain and force grass
         for (let dx = 0; dx < fieldW; dx++) {
             for (let dy = 0; dy < fieldH; dy++) {
                 if (fx + dx < w && fy + dy < h) {
                     const tileIdx = (fy + dy) * w + (fx + dx);
+                    // Override any roads or dirt with grass to ensure clean field
                     terrain.tiles[tileIdx] = Terrain.TILE_TYPES.indexOf('SOCCER_GRASS');
                 }
             }
