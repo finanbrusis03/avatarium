@@ -36,7 +36,7 @@ export class WorldRenderer {
         this.config = config;
         this.avatarRenderer = new AvatarRenderer(ctx);
         this.terrain = new Terrain(config.width, config.height, config.seed);
-        this.structureManager = new StructureManager(config.width, config.height, config.seed);
+        this.structureManager = new StructureManager(config.width, config.height, config.seed, this.terrain);
     }
 
     public get mapWidth() { return this.config.width; }
@@ -711,23 +711,7 @@ export class WorldRenderer {
         const tw = s.width;
         const th = s.height;
 
-        // We use slightly offset coords so the field lies inside the tile footprint
-        const pTop = isoToScreen(s.x, s.y);
-        const pRight = isoToScreen(s.x + tw, s.y);
-        const pBottom = isoToScreen(s.x + tw, s.y + th);
-        const pLeft = isoToScreen(s.x, s.y + th);
-
-        // Fill Grass Base darker
-        ctx.fillStyle = '#388E3C'; // Darker/richer green
-        ctx.beginPath();
-        ctx.moveTo(pTop.x, pTop.y);
-        ctx.lineTo(pRight.x, pRight.y);
-        ctx.lineTo(pBottom.x, pBottom.y);
-        ctx.lineTo(pLeft.x, pLeft.y);
-        ctx.closePath();
-        ctx.fill();
-
-        // Draw Lines setup
+        // Draw Lines setup (Grass footprint is handled by Terrain natively)
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
         ctx.lineWidth = 1.5;
         ctx.lineJoin = 'miter';

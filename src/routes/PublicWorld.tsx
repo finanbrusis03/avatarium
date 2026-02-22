@@ -9,7 +9,6 @@ import { AvatarService } from '../services/AvatarService';
 import { normalizeHandle } from '../utils/normalizeHandle';
 import type { WorldConfig } from '../services/WorldConfigService';
 import { WorldConfigService } from '../services/WorldConfigService';
-import { SpawnManager } from '../world/SpawnManager';
 import { chatService } from '../services/ChatService';
 import { soundService } from '../services/SoundService';
 
@@ -57,25 +56,23 @@ export function PublicWorld() {
         // 2. Ensure '@criszimn' exists
 
         const validAvatars: Creature[] = [];
-        let playerExists = false;
 
         for (const av of allAvatars) {
             if (av.name === 'Visitante') {
                 // Delete silently
                 AvatarService.delete(av.id).catch(console.error);
             } else {
-                if (normalizeHandle(av.name) === 'criszimn') playerExists = true;
                 validAvatars.push(av);
             }
         }
 
-        // Auto-create player if missing
-        if (!playerExists) {
-            console.log('Spawning @criszimn...');
-            const { x, y } = SpawnManager.findValidSpawnPoint(worldConfig);
-            const newPlayer = await AvatarService.create('criszimn', x, y, 0, 'M');
-            if (newPlayer) validAvatars.push(newPlayer);
-        }
+        // Auto-create player if missing (REMOVED)
+        // if (!playerExists) {
+        //     console.log('Spawning @criszimn...');
+        //     const { x, y } = SpawnManager.findValidSpawnPoint(worldConfig);
+        //     const newPlayer = await AvatarService.create('criszimn', x, y, 0, 'M');
+        //     if (newPlayer) validAvatars.push(newPlayer);
+        // }
 
         setCreatures(prev => {
             const prevMap = new Map(prev.map(c => [c.id, c]));

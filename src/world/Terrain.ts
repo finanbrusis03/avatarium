@@ -1,10 +1,10 @@
 import { Noise } from '../utils/Noise';
 import { isoToScreen, TILE_WIDTH, TILE_HEIGHT } from '../engine/IsoMath';
 
-export type TileType = 'WATER' | 'SAND' | 'GRASS' | 'DIRT' | 'STONE' | 'SNOW' | 'ASPHALT';
+export type TileType = 'WATER' | 'SAND' | 'GRASS' | 'DIRT' | 'ROAD' | 'PLAZA' | 'DOCK' | 'SOCCER_GRASS';
 
 export interface Prop {
-    type: 'TREE' | 'BUSH' | 'ROCK' | 'FLOWER' | 'BONFIRE' | 'UMBRELLA' | 'TOWEL';
+    type: 'TREE' | 'BUSH' | 'ROCK' | 'FLOWER' | 'BONFIRE' | 'UMBRELLA' | 'TOWEL' | 'FOUNTAIN' | 'BENCH';
     x: number;
     y: number;
     variant: number;
@@ -13,11 +13,11 @@ export interface Prop {
 export class Terrain {
     public width: number;
     public height: number;
-    private tiles: Uint8Array;
+    public tiles: Uint8Array;
     private props: Map<string, Prop> = new Map();
     private noise: Noise;
 
-    private static TILE_TYPES: TileType[] = ['WATER', 'SAND', 'GRASS', 'DIRT', 'STONE', 'SNOW', 'ASPHALT'];
+    public static TILE_TYPES: TileType[] = ['WATER', 'SAND', 'GRASS', 'DIRT', 'ROAD', 'PLAZA', 'DOCK', 'SOCCER_GRASS'];
 
     constructor(width: number, height: number, seedStr: string) {
         this.width = width;
@@ -40,7 +40,7 @@ export class Terrain {
                 const scale = 0.1;
                 const h = this.noise.noise2D(x * scale, y * scale);
 
-                let typeIdx = 2; // Grass
+                let typeIdx = 2; // Grass (index 2 in new TILE_TYPES array)
 
                 // Distance from center for Plaza
                 const distToCenter = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
@@ -50,19 +50,18 @@ export class Terrain {
                 const sandEdge = waterEdge - 10;
 
                 if (distToCenter < 6) {
-                    typeIdx = 4; // Central Plaza (STONE)
+                    typeIdx = 5; // Central Plaza (PLAZA - index 5)
                 } else if (y >= waterEdge) {
-                    typeIdx = 0; // Pure Water at the very bottom
+                    typeIdx = 0; // Pure Water at the very bottom (WATER - index 0)
                 } else if (y >= sandEdge + (h * 3)) {
-                    typeIdx = 1; // Wide Beach Sand
+                    typeIdx = 1; // Wide Beach Sand (SAND - index 1)
                 } else {
                     // Normal Noise Generation
-                    if (h < 0.15) typeIdx = 0; // Small inland ponds
-                    else if (h < 0.22) typeIdx = 1; // Small inland sand patches
-                    else if (h < 0.55) typeIdx = 2; // Grass
-                    else if (h < 0.70) typeIdx = 3; // Dirt
-                    else if (h < 0.85) typeIdx = 4; // Stone
-                    else typeIdx = 5; // Snow
+                    if (h < 0.15) typeIdx = 0; // Small inland ponds (WATER)
+                    else if (h < 0.22) typeIdx = 1; // Small inland sand patches (SAND)
+                    else if (h < 0.55) typeIdx = 2; // Grass (GRASS)
+                    else if (h < 0.70) typeIdx = 3; // Dirt (DIRT)
+                    else typeIdx = 2; // Default to Grass for higher elevations
                 }
 
                 // Organic Meandering Roads (Do not place roads on Plaza or Beach)
@@ -70,9 +69,9 @@ export class Terrain {
                 const isHorizontalRoad = y % 8 === 0 && h > 0.1 && h < 0.7;
                 const roadNoise = this.noise.noise2D(x * 0.5, y * 0.5);
 
-                if ((isVerticalRoad || isHorizontalRoad) && typeIdx !== 0 && typeIdx !== 1 && typeIdx !== 4) {
+                if ((isVerticalRoad || isHorizontalRoad) && typeIdx !== 0 && typeIdx !== 1 && typeIdx !== 5) { // Not Water, Sand, or Plaza
                     if (roadNoise > 0.3) {
-                        typeIdx = 6; // Asphalt
+                        typeIdx = 4; // ROAD (index 4)
                     }
                 }
 
@@ -104,6 +103,10 @@ export class Terrain {
                         });
                     }
                 }
+                // Central Plaza e Stone retirado da tipagem
+                if (Terrain.TILE_TYPES[typeIdx] === 'PLAZA') {
+                    this.props.set(`${x},${y}`, { type: 'FOUNTAIN', x, y, variant: 0 });
+                }
             }
         }
     }
@@ -120,14 +123,14 @@ export class Terrain {
     public getTileColor(type: TileType): string {
         switch (type) {
             case 'WATER': return '#1E88E5'; // Changed to brighter blue for base
-            case 'SAND': return '#FBC02D';
-            case 'DIRT': return '#5D4037';
-            case 'STONE': return '#616161';
-            case 'SNOW': return '#BDBDBD';
-            case 'ASPHALT': return '#37474F';
             case 'GRASS': return '#4CAF50';
+            case 'DIRT': return '#795548';
+            case 'ROAD': return '#607D8B';
+            case 'PLAZA': return '#CFD8DC';
+            case 'SAND': return '#FBC02D';
+            case 'SOCCER_GRASS': return '#2E7D32'; // Escuro
+            default: return '#000';
         }
-        return '#000';
     }
 
     public getTileTopColor(type: TileType): string {
@@ -135,12 +138,12 @@ export class Terrain {
             case 'WATER': return '#42A5F5';
             case 'SAND': return '#FFEE58';
             case 'DIRT': return '#795548';
-            case 'STONE': return '#757575';
-            case 'SNOW': return '#E0E0E0';
-            case 'ASPHALT': return '#455A64';
+            case 'ROAD': return '#607D8B';
             case 'GRASS': return '#66BB6A';
+            case 'PLAZA': return '#E0E0E0';
+            case 'SOCCER_GRASS': return '#388E3C';
+            default: return '#000';
         }
-        return '#000';
     }
 
     public drawFullTerrain(ctx: CanvasRenderingContext2D, startX: number, endX: number, startY: number, endY: number, time: number = 0) {
@@ -162,35 +165,25 @@ export class Terrain {
             }
         }
 
-        // Pass 1: Organic Biome Splats (Water -> Sand -> Dirt -> Grass -> Stone)
+        // Pass 1: Organic Biome Splats (Water -> Sand -> Dirt -> Grass -> Plaza)
         // WATER is first. It draws an oversized ellipse that smooths out the world border.
-        // Overlapping sand/grass will "eat" the water's inner corners creating organic beaches, 
+        // Overlapping sand/grass will "eat" the water's inner corners creating organic beaches,
         // while the outer black canvas border gets rounded off by the water ellipse.
-        const organicOrder: TileType[] = ['WATER', 'SAND', 'DIRT', 'GRASS', 'STONE'];
+        const organicOrder: TileType[] = ['WATER', 'SAND', 'GRASS', 'DIRT', 'ROAD', 'PLAZA', 'DOCK', 'SOCCER_GRASS'];
         for (const targetType of organicOrder) {
             for (let x = startX; x <= endX; x++) {
                 for (let y = startY; y <= endY; y++) {
                     if (this.getTile(x, y) === targetType) {
                         const p = isoToScreen(x, y);
 
-                        if (targetType === 'WATER') {
-                            const grad = ctx.createLinearGradient(p.x, p.y - TILE_HEIGHT / 2, p.x, p.y + TILE_HEIGHT / 2);
-                            grad.addColorStop(0, '#00BFFF'); // Bright Cyan Top
-                            grad.addColorStop(1, '#0277BD'); // Deep Ocean Blue Bottom
-                            ctx.fillStyle = grad;
-                            ctx.beginPath();
-                            ctx.ellipse(p.x, p.y, (TILE_WIDTH / 2) * 1.35, (TILE_HEIGHT / 2) * 1.35, 0, 0, Math.PI * 2);
-                            ctx.fill();
-                        } else {
-                            ctx.fillStyle = this.getTileColor(targetType);
-                            ctx.beginPath();
-                            ctx.ellipse(p.x, p.y, (TILE_WIDTH / 2) * 1.35, (TILE_HEIGHT / 2) * 1.35, 0, 0, Math.PI * 2);
-                            ctx.fill();
+                        ctx.fillStyle = this.getTileColor(targetType);
+                        ctx.beginPath();
+                        ctx.ellipse(p.x, p.y, (TILE_WIDTH / 2) * 1.35, (TILE_HEIGHT / 2) * 1.35, 0, 0, Math.PI * 2);
+                        ctx.fill();
 
-                            // Remove any accidental stroke lines from previous iterations
-                            ctx.strokeStyle = 'transparent';
-                            ctx.lineWidth = 0;
-                        }
+                        // Remove any accidental stroke lines from previous iterations
+                        ctx.strokeStyle = 'transparent';
+                        ctx.lineWidth = 0;
                     }
                 }
             }
@@ -216,6 +209,18 @@ export class Terrain {
                         ctx.arc(rx, ry, 2 + (i % 2), 0, Math.PI * 2);
                     }
                     ctx.fill();
+                } else if (type === 'SOCCER_GRASS') {
+                    // Lines are drawn separate, grass texture only
+                    ctx.fillStyle = '#2E7D32';
+                    ctx.globalAlpha = 0.8;
+                    ctx.beginPath();
+                    for (let i = 0; i < 4; i++) {
+                        const rx = p.x - (TILE_WIDTH * 0.3) + (Math.sin(seed + i * 1.1) * 0.5 + 0.5) * (TILE_WIDTH * 0.6);
+                        const ry = p.y - (TILE_HEIGHT * 0.3) + (Math.cos(seed + i * 2.2) * 0.5 + 0.5) * (TILE_HEIGHT * 0.6);
+                        ctx.moveTo(rx, ry);
+                        ctx.arc(rx, ry, 1 + (i % 2), 0, Math.PI * 2);
+                    }
+                    ctx.fill();
                 } else if (type === 'DIRT') {
                     ctx.fillStyle = '#4E342E';
                     ctx.globalAlpha = 0.5;
@@ -239,7 +244,7 @@ export class Terrain {
                         ctx.arc(rx, ry, Math.random() < 0.5 ? 0.8 : 1.2, 0, Math.PI * 2);
                     }
                     ctx.fill();
-                } else if (type === 'STONE') {
+                } else if (type === 'PLAZA') {
                     const cx = Math.floor(this.width / 2);
                     const cy = Math.floor(this.height / 2);
                     const distToCenter = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
@@ -332,7 +337,7 @@ export class Terrain {
         for (let x = startX; x <= endX; x++) {
             for (let y = startY; y <= endY; y++) {
                 const type = this.getTile(x, y);
-                if (type === 'ASPHALT') {
+                if (type === 'ROAD') {
                     raisedTiles.push({ x, y, type, depth: x + y });
                 }
             }
@@ -343,16 +348,16 @@ export class Terrain {
         for (const t of raisedTiles) {
             const p = isoToScreen(t.x, t.y);
 
-            if (t.type === 'ASPHALT') {
+            if (t.type === 'ROAD') {
                 // Asphalt is a flat terrain feature, drawn on top like an organic splat
-                ctx.fillStyle = this.getTileTopColor('ASPHALT');
+                ctx.fillStyle = this.getTileTopColor('ROAD');
                 ctx.beginPath();
                 ctx.ellipse(p.x, p.y, (TILE_WIDTH / 2) * 1.35, (TILE_HEIGHT / 2) * 1.35, 0, 0, Math.PI * 2);
                 ctx.fill();
             }
 
             // Draw Road Markings
-            if (t.type === 'ASPHALT') {
+            if (t.type === 'ROAD') {
                 const tTop = this.getTile(t.x, t.y - 1);
                 const tRight = this.getTile(t.x + 1, t.y);
                 const tBottom = this.getTile(t.x, t.y + 1);
@@ -365,13 +370,13 @@ export class Terrain {
                 ctx.beginPath();
 
                 // Horizontal road line
-                if (tLeft === 'ASPHALT' || tRight === 'ASPHALT') {
+                if (tLeft === 'ROAD' || tRight === 'ROAD') {
                     ctx.moveTo(p.x - TILE_WIDTH / 4, p.y - TILE_HEIGHT / 4);
                     ctx.lineTo(p.x + TILE_WIDTH / 4, p.y + TILE_HEIGHT / 4);
                 }
 
                 // Vertical road line
-                if (tTop === 'ASPHALT' || tBottom === 'ASPHALT') {
+                if (tTop === 'ROAD' || tBottom === 'ROAD') {
                     ctx.moveTo(p.x + TILE_WIDTH / 4, p.y - TILE_HEIGHT / 4);
                     ctx.lineTo(p.x - TILE_WIDTH / 4, p.y + TILE_HEIGHT / 4);
                 }
@@ -380,14 +385,14 @@ export class Terrain {
 
                 // Intersection Processing
                 let asphaltCount = 0;
-                if (tTop === 'ASPHALT') asphaltCount++;
-                if (tRight === 'ASPHALT') asphaltCount++;
-                if (tBottom === 'ASPHALT') asphaltCount++;
-                if (tLeft === 'ASPHALT') asphaltCount++;
+                if (tTop === 'ROAD') asphaltCount++;
+                if (tRight === 'ROAD') asphaltCount++;
+                if (tBottom === 'ROAD') asphaltCount++;
+                if (tLeft === 'ROAD') asphaltCount++;
 
                 if (asphaltCount >= 3) {
                     // It's an intersection. We shouldn't draw a gray circle that overlaps badly.
-                    // The main diamond is already drawn correctly. 
+                    // The main diamond is already drawn correctly.
                     // Let's just draw an intersection dashed square if needed, or leave it blank.
                 }
                 ctx.restore();

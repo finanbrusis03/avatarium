@@ -11,16 +11,17 @@ export interface Structure {
     height: number; // Footprint height (depth)
 }
 
+import { Terrain } from './Terrain';
 import { Noise } from '../utils/Noise';
 
 export class StructureManager {
     public structures: Structure[] = [];
 
-    constructor(worldWidth: number, worldHeight: number, seed: string) {
-        this.generate(worldWidth, worldHeight, seed);
+    constructor(worldWidth: number, worldHeight: number, seed: string, terrain: Terrain) {
+        this.generate(worldWidth, worldHeight, seed, terrain);
     }
 
-    private generate(w: number, h: number, seedStr: string) {
+    private generate(w: number, h: number, seedStr: string, terrain: Terrain) {
         // Simple hash of seed string to number
         let seed = 0;
         for (let i = 0; i < seedStr.length; i++) seed += seedStr.charCodeAt(i);
@@ -185,9 +186,9 @@ export class StructureManager {
             lampCount++;
         }
 
-        // 3. Place Soccer Field (Exactly 1)
-        const fieldW = 4;
-        const fieldH = 3;
+        // 3. Place Soccer Field (Exactly 1) e modificar o mapa `tiles` do jogo proceduralmente
+        const fieldW = 12;
+        const fieldH = 8;
 
         // Try to find a valid spot
         for (let tries = 0; tries < 2000; tries++) {
@@ -216,6 +217,15 @@ export class StructureManager {
             }
 
             if (validTerrain) {
+                // Ao invés de ser um bloco voador cego, vamos gravar os Tiles originais permanentemente:
+                for (let dx = 0; dx < fieldW; dx++) {
+                    for (let dy = 0; dy < fieldH; dy++) {
+                        const tileIdx = (y + dy) * w + (x + dx);
+                        terrain.tiles[tileIdx] = Terrain.TILE_TYPES.indexOf('SOCCER_GRASS');
+                    }
+                }
+
+                // Nós ainda registramos a estrutura lógica SOMENTE para instanciar POSTS/TRAVES no renderizador lá em cima!
                 this.structures.push({
                     id: 'soccer_field_main',
                     type: 'SOCCER_FIELD',

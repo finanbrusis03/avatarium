@@ -27,7 +27,7 @@ export class AvatarRenderer {
         const centerY = p.y; // Ground level
 
         // Spawn Animation Logic
-        let scale = 0.8; // BASE SCALE REDUCED (Fase 3 - Avatars Smaller)
+        let scale = 0.60; // REDUCED AGAIN (from 0.72) to 0.60
         let alpha = 1;
         const now = Date.now();
 
@@ -43,7 +43,7 @@ export class AvatarRenderer {
                 const x = progress;
                 const easeOutBack = 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
 
-                scale = (0.6 + easeOutBack * 0.4) * 0.8; // Apply base scale
+                scale = (0.6 + easeOutBack * 0.4) * 0.60; // Apply exact base scale
                 alpha = progress;
 
                 // Emit particles only once
