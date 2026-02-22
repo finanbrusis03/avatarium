@@ -131,7 +131,9 @@ export class AvatarRenderer {
             time,
             isMoving,
             bob,
-            facing: 'right'
+            facing: 'right',
+            walkDir,
+            animPhase: creature.animPhase
         };
 
         // Pre-rotate torso slightly if walking
@@ -169,10 +171,12 @@ export class AvatarRenderer {
         }
 
         if (nearFountain) {
+            this.ctx.save();
             this.ctx.globalCompositeOperation = 'source-atop';
             this.ctx.fillStyle = 'rgba(100, 200, 255, 0.15)';
-            this.ctx.fillRect(centerX - 15, baseY - 40, 30, 60);
-            this.ctx.globalCompositeOperation = 'source-over';
+            // Limitar a altura para não encostar no chão/sombra
+            this.ctx.fillRect(centerX - 15, finalY - 40, 30, 42);
+            this.ctx.restore();
         }
 
         this.ctx.restore(); // Restore Tilt Transform

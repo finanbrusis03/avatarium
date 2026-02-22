@@ -45,19 +45,19 @@ export const BOTTOM_ITEMS: CosmeticItem[] = [
             const { x, y } = rig.anchors.legs;
             ctx.fillStyle = style.primaryColor;
 
-            // Simple legs
             const legW = 6;
             const legH = 12;
             const separation = 4;
 
-            // Anim offset for walking
-            const walkOffset = anim.isMoving ? Math.sin(anim.time * 0.015) * 3 : 0;
+            // Sincronizado com os pés no AvatarRenderer
+            const walkOffsetL = anim.isMoving ? Math.sin(anim.time * 0.015) * 8 * anim.walkDir : 0;
+            const walkOffsetR = anim.isMoving ? Math.sin(anim.time * 0.015 + Math.PI) * 8 * anim.walkDir : 0;
 
             // Left leg
-            ctx.fillRect(x - separation - legW / 2, y, legW, legH + walkOffset);
+            ctx.fillRect(x - separation - legW / 2 + (walkOffsetL * 0.5), y, legW, legH + walkOffsetL);
 
             // Right leg
-            ctx.fillRect(x + separation - legW / 2, y, legW, legH - walkOffset);
+            ctx.fillRect(x + separation - legW / 2 + (walkOffsetR * 0.5), y, legW, legH + walkOffsetR);
 
             // Waist
             ctx.fillRect(x - 8, y - 4, 16, 6);
@@ -69,18 +69,20 @@ export const BOTTOM_ITEMS: CosmeticItem[] = [
             const { x, y } = rig.anchors.legs;
             ctx.fillStyle = style.primaryColor;
             const legW = 6;
-            const legH = 6; // Shorter
+            const legH = 6;
             const separation = 4;
-            const walkOffset = anim.isMoving ? Math.sin(anim.time * 0.015) * 3 : 0;
 
-            ctx.fillRect(x - separation - legW / 2, y, legW, legH + walkOffset);
-            ctx.fillRect(x + separation - legW / 2, y, legW, legH - walkOffset);
+            const walkOffsetL = anim.isMoving ? Math.sin(anim.time * 0.015) * 8 * anim.walkDir : 0;
+            const walkOffsetR = anim.isMoving ? Math.sin(anim.time * 0.015 + Math.PI) * 8 * anim.walkDir : 0;
+
+            ctx.fillRect(x - separation - legW / 2 + (walkOffsetL * 0.5), y, legW, legH + walkOffsetL);
+            ctx.fillRect(x + separation - legW / 2 + (walkOffsetR * 0.5), y, legW, legH + walkOffsetR);
             ctx.fillRect(x - 8, y - 4, 16, 6);
 
             // Skin legs below
-            ctx.fillStyle = '#ffdbac'; // Hardcoded skin tone for now (should be prop)
-            ctx.fillRect(x - separation - legW / 2 + 1, y + legH + walkOffset, 4, 6);
-            ctx.fillRect(x + separation - legW / 2 + 1, y + legH - walkOffset, 4, 6);
+            ctx.fillStyle = '#ffdbac';
+            ctx.fillRect(x - separation - legW / 2 + 1 + (walkOffsetL * 0.5), y + legH + walkOffsetL, 4, 6);
+            ctx.fillRect(x + separation - legW / 2 + 1 + (walkOffsetR * 0.5), y + legH + walkOffsetR, 4, 6);
         }
     }
 ];
@@ -90,31 +92,33 @@ export const SHOES_ITEMS: CosmeticItem[] = [
         id: 'sneakers', slot: 'shoes', rarity: 'COMMON',
         draw: (ctx, rig, style, anim) => {
             const { x, y } = rig.anchors.feet;
-            const walkOffset = anim.isMoving ? Math.sin(anim.time * 0.015) * 3 : 0;
+            const walkOffsetL = anim.isMoving ? Math.sin(anim.time * 0.015) * 8 * anim.walkDir : 0;
+            const walkOffsetR = anim.isMoving ? Math.sin(anim.time * 0.015 + Math.PI) * 8 * anim.walkDir : 0;
             const footY = y + 8;
 
             ctx.fillStyle = style.primaryColor;
-            // Left
-            ctx.fillRect(x - 8, footY + walkOffset, 8, 5);
-            // Right
-            ctx.fillRect(x + 0, footY - walkOffset, 8, 5); // Aligned with right foot x+1
+            // Left Sneaker
+            ctx.fillRect(x - 8 + (walkOffsetL * 0.5), footY + walkOffsetL, 8, 5);
+            // Right Sneaker
+            ctx.fillRect(x + 0 + (walkOffsetR * 0.5), footY + walkOffsetR, 8, 5);
 
             // Laces detail
             ctx.fillStyle = 'white';
-            ctx.fillRect(x - 6, footY + walkOffset, 4, 1);
-            ctx.fillRect(x + 2, footY - walkOffset, 4, 1);
+            ctx.fillRect(x - 6 + (walkOffsetL * 0.5), footY + walkOffsetL, 4, 1);
+            ctx.fillRect(x + 2 + (walkOffsetR * 0.5), footY + walkOffsetR, 4, 1);
         }
     },
     {
         id: 'boots', slot: 'shoes', rarity: 'RARE',
         draw: (ctx, rig, style, anim) => {
             const { x, y } = rig.anchors.feet;
-            const walkOffset = anim.isMoving ? Math.sin(anim.time * 0.015) * 3 : 0;
+            const walkOffsetL = anim.isMoving ? Math.sin(anim.time * 0.015) * 8 * anim.walkDir : 0;
+            const walkOffsetR = anim.isMoving ? Math.sin(anim.time * 0.015 + Math.PI) * 8 * anim.walkDir : 0;
             const footY = y + 7;
 
             ctx.fillStyle = style.primaryColor;
-            ctx.fillRect(x - 8, footY + walkOffset, 8, 7);
-            ctx.fillRect(x + 0, footY - walkOffset, 8, 7);
+            ctx.fillRect(x - 8 + (walkOffsetL * 0.5), footY + walkOffsetL, 8, 8);
+            ctx.fillRect(x + 0 + (walkOffsetR * 0.5), footY + walkOffsetR, 8, 8);
         }
     }
 ];

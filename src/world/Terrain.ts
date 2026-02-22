@@ -277,17 +277,18 @@ export class Terrain {
                         ctx.fill();
                     }
                 } else if (type === 'ROAD') {
-                    // Pedestrian crosswalks near intersections (assuming block size of 10)
-                    const yMod = y % 10;
+                    // Pedestrian crosswalks near intersections
                     const xMod = x % 10;
+                    const yMod = y % 8; // Roads are horizontal every 8 tiles
 
-                    // Pinta faixa em pontos adjacentes aos cruzamentos
-                    if ((xMod === 0 && (yMod === 2 || yMod === 8)) || (yMod === 0 && (xMod === 2 || xMod === 8))) {
+                    const nearVerticalIntersection = xMod === 0 && (y % 8 === 2 || y % 8 === 6);
+                    const nearHorizontalIntersection = yMod === 0 && (x % 10 === 2 || x % 10 === 8);
+
+                    if (nearVerticalIntersection || nearHorizontalIntersection) {
                         ctx.save();
                         ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
                         ctx.translate(p.x, p.y);
 
-                        // Rotaciona as listras de acordo com a via (Iso math angle aprox)
                         const isVerticalRoad = xMod === 0;
                         ctx.rotate(isVerticalRoad ? (Math.PI / 6) : (-Math.PI / 6));
 

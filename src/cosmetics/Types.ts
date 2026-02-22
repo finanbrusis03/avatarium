@@ -23,7 +23,9 @@ export interface AnimState {
     time: number;
     isMoving: boolean;
     bob: number;
-    facing: 'left' | 'right'; // For future use, mostly isometric assumption now
+    facing: 'left' | 'right';
+    walkDir: number;
+    animPhase: number;
 }
 
 // Rig / Anchors for positioning
