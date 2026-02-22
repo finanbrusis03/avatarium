@@ -1,6 +1,6 @@
 import { RNG } from '../utils/RNG';
 
-export type StructureType = 'HOUSE_SMALL' | 'HOUSE_MEDIUM' | 'FOUNTAIN' | 'LAMP_POST' | 'BENCH';
+export type StructureType = 'HOUSE_SMALL' | 'HOUSE_MEDIUM' | 'FOUNTAIN' | 'LAMP_POST' | 'BENCH' | 'SOCCER_FIELD';
 
 export interface Structure {
     id: string;
@@ -184,6 +184,46 @@ export class StructureManager {
             placedLamps.push({ x: spot.x, y: spot.y });
             lampCount++;
         }
+
+        // 3. Place Soccer Field (Exactly 1)
+        const fieldW = 4;
+        const fieldH = 3;
+
+        // Try to find a valid spot
+        for (let tries = 0; tries < 2000; tries++) {
+            const x = rng.nextInt(2, w - fieldW - 2);
+            const y = rng.nextInt(2, h - fieldH - 2);
+
+            // Avoid Center Plaza
+            const cx = w / 2, cy = h / 2;
+            if (Math.abs(x - cx) < 8 && Math.abs(y - cy) < 8) continue;
+
+            const beachY = h - 16;
+            if (y > beachY) continue;
+
+            if (this.checkOverlap(x, y, fieldW, fieldH)) continue;
+
+            // Check Terrain
+            let validTerrain = true;
+            for (let dx = 0; dx < fieldW; dx++) {
+                for (let dy = 0; dy < fieldH; dy++) {
+                    const hVal = noise.noise2D((x + dx) * 0.1, (y + dy) * 0.1);
+                    if (hVal < 0.2 || hVal > 0.7) {
+                        validTerrain = false; break;
+                    }
+                }
+                if (!validTerrain) break;
+            }
+
+            if (validTerrain) {
+                this.structures.push({
+                    id: 'soccer_field_main',
+                    type: 'SOCCER_FIELD',
+                    x, y, width: fieldW, height: fieldH
+                });
+                break;
+            }
+        }
     }
 
     private checkOverlap(x: number, y: number, w: number, h: number): boolean {
@@ -210,7 +250,7 @@ export class StructureManager {
         // Check structures
         // Simple search (can be optimized with a grid/set if needed)
         for (const s of this.structures) {
-            if (s.type === 'LAMP_POST') continue; // Lamp posts might be walkable or small enough? Let's say walkable for now or block? User said "collision with houses".
+            if (s.type === 'LAMP_POST' || s.type === 'SOCCER_FIELD') continue; // Lamp posts might be walkable or small enough? Let's say walkable for now or block? User said "collision with houses".
             // Let's block houses.
 
             if (x >= s.x && x < s.x + s.width &&

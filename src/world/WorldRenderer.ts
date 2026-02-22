@@ -202,6 +202,8 @@ export class WorldRenderer {
                     this.drawLampPostBase(ctx, s, lightLevel, time); // Base only, glow is separate pass
                 } else if (s.type === 'BENCH') {
                     this.drawBench(ctx, s);
+                } else if (s.type === 'SOCCER_FIELD') {
+                    this.drawSoccerField(ctx, s);
                 } else {
                     // Houses and other generic structures
                     this.drawStructure(ctx, s, lightLevel);
@@ -446,7 +448,6 @@ export class WorldRenderer {
                 // Windows are only lit at night (lightLevel < 0.6)
                 const isLit = lightLevel < 0.6 && (winHash % 100) > 55;
 
-                ctx.fillStyle = isLit ? '#FFF59D' : '#1A232E'; // Neon yellow or dark glass
                 ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
                 ctx.lineWidth = 1;
 
@@ -462,8 +463,20 @@ export class WorldRenderer {
                     ctx.lineTo(wx + 8, wy + 6);
                     ctx.lineTo(wx, wy + 10);
                 }
-                ctx.fill();
-                ctx.stroke();
+
+                if (isLit) {
+                    ctx.save();
+                    ctx.fillStyle = '#FFF59D'; // Neon yellow
+                    ctx.shadowColor = '#FFF59D';
+                    ctx.shadowBlur = 10;
+                    ctx.fill();
+                    ctx.restore();
+                    ctx.stroke();
+                } else {
+                    ctx.fillStyle = '#1A232E'; // Dark glass
+                    ctx.fill();
+                    ctx.stroke();
+                }
             };
 
             for (let f = 1; f <= floors; f++) {
@@ -544,15 +557,27 @@ export class WorldRenderer {
             // Cute Window
             const wx = (p3.x - p4.x) * 0.75 + p4.x;
             const wy = (p3.y - p4.y) * 0.75 + p4.y - 12; // Lower
-            const winLit = (hash % 100) > 30; // 70% chance lit residential
+            const winLit = lightLevel < 0.6 && (hash % 100) > 30; // 70% chance lit residential during night
 
-            ctx.fillStyle = winLit ? '#FFE082' : '#37474F'; // Warm light or dark blue
             ctx.beginPath();
             ctx.moveTo(wx - 7, wy - 3);
             ctx.lineTo(wx + 7, wy + 4);
             ctx.lineTo(wx + 7, wy - 8);
             ctx.lineTo(wx - 7, wy - 15);
-            ctx.fill(); ctx.stroke();
+
+            if (winLit) {
+                ctx.save();
+                ctx.fillStyle = '#FFE082'; // Warm light
+                ctx.shadowColor = '#FFE082';
+                ctx.shadowBlur = 15;
+                ctx.fill();
+                ctx.restore();
+                ctx.stroke();
+            } else {
+                ctx.fillStyle = '#37474F'; // Dark blue
+                ctx.fill();
+                ctx.stroke();
+            }
 
             // Cross bars on window
             ctx.strokeStyle = palSmall.left; // window frame matches house
@@ -682,6 +707,112 @@ export class WorldRenderer {
         ctx.stroke();
     }
 
+    private drawSoccerField(ctx: CanvasRenderingContext2D, s: Structure) {
+        const tw = s.width;
+        const th = s.height;
+
+        // We use slightly offset coords so the field lies inside the tile footprint
+        const pTop = isoToScreen(s.x, s.y);
+        const pRight = isoToScreen(s.x + tw, s.y);
+        const pBottom = isoToScreen(s.x + tw, s.y + th);
+        const pLeft = isoToScreen(s.x, s.y + th);
+
+        // Fill Grass Base darker
+        ctx.fillStyle = '#388E3C'; // Darker/richer green
+        ctx.beginPath();
+        ctx.moveTo(pTop.x, pTop.y);
+        ctx.lineTo(pRight.x, pRight.y);
+        ctx.lineTo(pBottom.x, pBottom.y);
+        ctx.lineTo(pLeft.x, pLeft.y);
+        ctx.closePath();
+        ctx.fill();
+
+        // Draw Lines setup
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.lineWidth = 1.5;
+        ctx.lineJoin = 'miter';
+
+        // Outer bounds (slightly inset)
+        const inW = 0.2;
+        const inH = 0.2;
+        const oTop = isoToScreen(s.x + inW, s.y + inH);
+        const oRight = isoToScreen(s.x + tw - inW, s.y + inH);
+        const oBottom = isoToScreen(s.x + tw - inW, s.y + th - inH);
+        const oLeft = isoToScreen(s.x + inW, s.y + th - inH);
+
+        ctx.beginPath();
+        ctx.moveTo(oTop.x, oTop.y);
+        ctx.lineTo(oRight.x, oRight.y);
+        ctx.lineTo(oBottom.x, oBottom.y);
+        ctx.lineTo(oLeft.x, oLeft.y);
+        ctx.closePath();
+        ctx.stroke();
+
+        // Halfway line (vertical in world space)
+        const halfX = s.x + tw / 2;
+        const c1 = isoToScreen(halfX, s.y + inH);
+        const c2 = isoToScreen(halfX, s.y + th - inH);
+        ctx.beginPath();
+        ctx.moveTo(c1.x, c1.y);
+        ctx.lineTo(c2.x, c2.y);
+        ctx.stroke();
+
+        // Center circle
+        const cCenter = isoToScreen(halfX, s.y + th / 2);
+        ctx.save();
+        ctx.translate(cCenter.x, cCenter.y);
+        ctx.scale(2, 1); // Isometric circle squash
+        ctx.beginPath();
+        ctx.arc(0, 0, 15, 0, Math.PI * 2); // 15px unscaled radius
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.beginPath(); ctx.arc(cCenter.x, cCenter.y, 2, 0, Math.PI * 2); ctx.fill();
+
+        // Little Goals
+        const drawGoal = (center: { x: number, y: number }, isLeft: boolean) => {
+            // Isometric box for the net
+            ctx.strokeStyle = '#FFF';
+            ctx.lineWidth = 2;
+            const gw = 18; // goal visual width
+            const gh = 18; // height
+
+            ctx.beginPath();
+            // front posts
+            ctx.moveTo(center.x - gw / 2, center.y);
+            ctx.lineTo(center.x - gw / 2, center.y - gh);
+            ctx.moveTo(center.x + gw / 2, center.y);
+            ctx.lineTo(center.x + gw / 2, center.y - gh);
+            // crossbar
+            ctx.moveTo(center.x - gw / 2, center.y - gh);
+            ctx.lineTo(center.x + gw / 2, center.y - gh);
+            ctx.stroke();
+
+            // net back
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            ctx.lineWidth = 1;
+            const dirX = isLeft ? 10 : -10;
+            const dirY = isLeft ? -5 : 5;
+
+            ctx.beginPath();
+            ctx.moveTo(center.x - gw / 2, center.y - gh);
+            ctx.lineTo(center.x - gw / 2 + dirX, center.y - gh + dirY);
+            ctx.lineTo(center.x + gw / 2 + dirX, center.y - gh + dirY);
+            ctx.lineTo(center.x + gw / 2, center.y - gh);
+
+            ctx.moveTo(center.x - gw / 2, center.y);
+            ctx.lineTo(center.x - gw / 2 + dirX, center.y + dirY);
+
+            ctx.moveTo(center.x + gw / 2, center.y);
+            ctx.lineTo(center.x + gw / 2 + dirX, center.y + dirY);
+            ctx.stroke();
+        };
+
+        drawGoal(isoToScreen(s.x, s.y + th / 2), true);
+        drawGoal(isoToScreen(s.x + tw, s.y + th / 2), false);
+    }
+
     private drawLampPostBase(ctx: CanvasRenderingContext2D, s: Structure, lightLevel: number, time: number) {
         const p = isoToScreen(s.x, s.y);
         const cx = p.x;
@@ -710,7 +841,17 @@ export class WorldRenderer {
         const bulbInfo = isNight ? `rgba(255, 240, 150, ${intensity * 0.8})` : '#AAA';
 
         ctx.fillStyle = bulbInfo;
+        ctx.beginPath();
         ctx.fillRect(cx - 3, cy - 48, 6, 8);
+
+        if (isNight && intensity > 0.1) {
+            ctx.save();
+            ctx.shadowColor = '#FFF096';
+            ctx.shadowBlur = 20;
+            ctx.fillStyle = `rgba(255, 240, 150, ${intensity * 0.5})`;
+            ctx.fillRect(cx - 3, cy - 48, 6, 8);
+            ctx.restore();
+        }
     }
 
     private drawLampPostGlow(ctx: CanvasRenderingContext2D, s: Structure, lightLevel: number, time: number) {
@@ -736,13 +877,13 @@ export class WorldRenderer {
 
         ctx.globalCompositeOperation = 'screen';
 
-        // Reduced Radius: 70px (was 120+ implied)
-        const radius = 70;
-        const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, radius);
+        // Aumentando o raio (Radius) e a opacidade para um Glow mais expansivo pelo chao
+        const radius = 100;
+        const grad = ctx.createRadialGradient(cx, cy, 5, cx, cy, radius);
 
         // Soft, warm, transparent glow
-        grad.addColorStop(0, `rgba(255, 220, 160, ${0.18 * intensity})`); // Core
-        grad.addColorStop(0.4, `rgba(255, 180, 100, ${0.08 * intensity})`); // Mid
+        grad.addColorStop(0, `rgba(255, 210, 110, ${0.4 * intensity})`); // Core (mais amarelado/laranja)
+        grad.addColorStop(0.3, `rgba(255, 170, 70, ${0.15 * intensity})`); // Mid
         grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
         ctx.fillStyle = grad;

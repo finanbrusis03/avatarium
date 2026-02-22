@@ -271,6 +271,33 @@ export class Terrain {
                         ctx.restore();
                     }
                 } else if (type === 'WATER') {
+                    // Shoreline Waves (Surf/Foam)
+                    const isShore = this.getTile(x, y - 1) === 'SAND' || this.getTile(x - 1, y) === 'SAND';
+
+                    if (isShore) {
+                        const waveSpeed = 0.0015;
+                        const waveCycle = (time * waveSpeed + (x + y) * 0.5);
+                        // Normalize sin to 0-1 for surge
+                        const surge = (Math.sin(waveCycle) + 1) / 2;
+
+                        ctx.save();
+                        // Foam base filling
+                        ctx.fillStyle = `rgba(255, 255, 255, ${surge * 0.35})`;
+                        ctx.beginPath();
+                        // Push foam towards inland (upwards in screen Y)
+                        const foamOffset = -surge * 18;
+                        ctx.ellipse(p.x, p.y + foamOffset, (TILE_WIDTH / 2) * 1.1, (TILE_HEIGHT / 2) * 1.1, 0, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Shoreline bright foam line
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${surge * 0.8})`;
+                        ctx.lineWidth = 1.5 + surge;
+                        ctx.beginPath();
+                        ctx.ellipse(p.x, p.y + foamOffset - 2, TILE_WIDTH / 2, TILE_HEIGHT / 2, 0, Math.PI, Math.PI * 2);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+
                     // Liquid animated shimmering ripples (curved bezier paths instead of straight lines)
                     ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
                     ctx.lineCap = 'round';
