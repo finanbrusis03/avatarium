@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-
-import { useGameLoop } from '../engine/GameLoop';
+import { useSearchParams } from 'react-router-dom'; import { useGameLoop } from '../engine/GameLoop';
 import { type Camera, INITIAL_CAMERA } from '../engine/Camera';
 import { isoToScreen, screenToIso } from '../engine/IsoMath';
 import { WorldRenderer } from '../world/WorldRenderer';
@@ -23,7 +22,7 @@ const ZOOM_MIN = 0.4;
 const ZOOM_MAX = 3.5;
 
 export function PublicWorld() {
-
+    const [searchParams] = useSearchParams();
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rendererRef = useRef<WorldRenderer | null>(null);
     const isMobile = useIsMobile();
@@ -31,9 +30,10 @@ export function PublicWorld() {
     const [camera, setCamera] = useState<Camera>(INITIAL_CAMERA);
     const [creatures, setCreatures] = useState<Creature[]>([]);
 
-
-
-    // Interaction State
+    // Search State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchError, setSearchError] = useState<string | null>(null);
+    const [isSearching, setIsSearching] = useState(false);    // Interaction State
     const [isDragging, setIsDragging] = useState(false);
     const lastMousePos = useRef<{ x: number, y: number } | null>(null);
 
@@ -115,7 +115,13 @@ export function PublicWorld() {
             }
         });
 
-        syncCreatures();
+        syncCreatures().then(() => {
+            // Handle URL Focus
+            const focusName = searchParams.get('focus');
+            if (focusName) {
+                handleSearch(focusName);
+            }
+        });
 
         pollIntervalRef.current = window.setInterval(syncCreatures, 5000);
 
@@ -234,12 +240,13 @@ export function PublicWorld() {
 
             if (isEventActive) {
                 // FORCE NIGHT using config intensity
-                ll = intensity;
+                ll = Math.min(intensity, 0.4); // Ensures it always triggers darkness mask (limit is 0.65)
             } else {
                 // Normal Cycle (slower, ~5 min period)
+                // Kept bright to avoid false dark mode
                 const dayCycle = Math.sin(timeSec * 0.02);
                 const n = (dayCycle + 1) / 2;
-                ll = 0.2 + n * 0.8;
+                ll = 0.7 + n * 0.3;
             }
 
             rendererRef.current.drawWorld(camera, creatures, timeRef.current, ll, null, camera.followTargetId);
@@ -292,8 +299,33 @@ export function PublicWorld() {
         }));
     };
 
+    const handleSearch = async (query: string) => {
+        if (!query) return;
+        setIsSearching(true);
 
+        const normalized = normalizeHandle(query);
+        let target = creatures.find(c => normalizeHandle(c.name) === normalized);
 
+        if (!target) {
+            const dbCreature = await AvatarService.getByName(normalized);
+            if (dbCreature) {
+                setCamera(prev => ({ ...prev, followTargetId: dbCreature.id }));
+                setSearchError(null);
+                setSearchQuery('');
+                if (!creatures.find(c => c.id === dbCreature.id)) {
+                    setCreatures(prev => [...prev, dbCreature]);
+                }
+            } else {
+                setSearchError('Avatar não encontrado');
+                setTimeout(() => setSearchError(null), 3000);
+            }
+        } else {
+            setCamera(prev => ({ ...prev, followTargetId: target.id }));
+            setSearchError(null);
+            setSearchQuery('');
+        }
+        setIsSearching(false);
+    };
     // --- Input Handlers (Mouse) ---
     const handleWheel = (e: React.WheelEvent) => {
         applyZoom(e.deltaY > 0 ? 0.9 : 1.1);
@@ -464,6 +496,11 @@ export function PublicWorld() {
             {isMobile ? (
                 <HUDMobile
                     onlineCount={creatures.length}
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    onSearchSubmit={() => handleSearch(searchQuery)}
+                    searchError={searchError}
+                    isSearching={isSearching}
                     followedName={followedName}
                     onStopFollowing={() => setCamera(prev => ({ ...prev, followTargetId: null }))}
                     onZoom={applyZoom}
@@ -473,6 +510,11 @@ export function PublicWorld() {
             ) : (
                 <HUDDesktop
                     onlineCount={creatures.length}
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    onSearchSubmit={() => handleSearch(searchQuery)}
+                    searchError={searchError}
+                    isSearching={isSearching}
                     followedName={followedName}
                     onStopFollowing={() => setCamera(prev => ({ ...prev, followTargetId: null }))}
                     onZoom={applyZoom}

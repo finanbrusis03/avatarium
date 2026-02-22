@@ -6,6 +6,11 @@ interface HUDDesktopProps {
     onStopFollowing: () => void;
     onZoom: (factor: number) => void;
     onResetZoom: () => void;
+    searchQuery: string;
+    onSearchChange: (q: string) => void;
+    onSearchSubmit: () => void;
+    searchError: string | null;
+    isSearching: boolean;
 }
 
 export function HUDDesktop({
@@ -13,7 +18,12 @@ export function HUDDesktop({
     followedName,
     onStopFollowing,
     onZoom,
-    onResetZoom
+    onResetZoom,
+    searchQuery,
+    onSearchChange,
+    onSearchSubmit,
+    searchError,
+    isSearching
 }: HUDDesktopProps) {
 
     return (
@@ -26,9 +36,24 @@ export function HUDDesktop({
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                 <h1 style={{ margin: 0, fontSize: '24px', fontFamily: 'monospace', color: '#FFF' }}>Avatarium</h1>
 
-
-
-
+                {/* Search / Target */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <input
+                        value={searchQuery}
+                        onChange={(e) => onSearchChange(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && onSearchSubmit()}
+                        placeholder="Buscar @nome..."
+                        style={{
+                            background: '#1a1a1a', border: '1px solid #444', color: 'white',
+                            padding: '6px 12px', borderRadius: '4px', outline: 'none',
+                            width: '200px', fontSize: '13px'
+                        }}
+                    />
+                    <button onClick={onSearchSubmit} disabled={isSearching} style={btnStyle}>
+                        {isSearching ? '⏳' : '🔍'}
+                    </button>
+                    {searchError && <span style={{ color: '#ff4444', fontSize: '12px' }}>{searchError}</span>}
+                </div>
             </div>
 
             {/* Status / Controls */}

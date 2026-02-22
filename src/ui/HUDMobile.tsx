@@ -7,6 +7,11 @@ interface HUDMobileProps {
     onZoom: (factor: number) => void;
     onResetZoom: () => void;
     onRecententer: () => void; // Reset camera position
+    searchQuery: string;
+    onSearchChange: (q: string) => void;
+    onSearchSubmit: () => void;
+    searchError: string | null;
+    isSearching: boolean;
 }
 
 export function HUDMobile({
@@ -15,11 +20,14 @@ export function HUDMobile({
     onStopFollowing,
     onZoom,
     onResetZoom,
-    onRecententer
+    onRecententer,
+    searchQuery,
+    onSearchChange,
+    onSearchSubmit,
+    searchError,
+    isSearching
 }: HUDMobileProps) {
     const [isOpen, setIsOpen] = useState(false);
-
-
     return (
         <>
             {/* Top Bar (Compact) */}
@@ -69,11 +77,36 @@ export function HUDMobile({
                         display: 'flex', flexDirection: 'column', gap: '20px',
                         animation: 'slideUp 0.3s ease-out'
                     }}>
-                        <div style={{ width: '40px', height: '4px', background: '#444', borderRadius: '2px', margin: '0 auto' }} />
-
-
-
-
+                        <div style={{ width: '40px', height: '4px', background: '#444', borderRadius: '2px', margin: '0 auto' }} />                        {/* Search */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <label style={{ fontSize: '12px', color: '#888', fontWeight: 'bold' }}>BUSCAR AVATAR</label>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <span style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    background: '#333', padding: '0 15px', borderRadius: '12px', color: '#888', fontWeight: 'bold'
+                                }}>@</span>
+                                <input
+                                    value={searchQuery}
+                                    onChange={(e) => onSearchChange(e.target.value)}
+                                    placeholder="nickname..."
+                                    style={{
+                                        flex: 1, background: '#1a1a1a', border: '1px solid #444', color: 'white',
+                                        padding: '12px', borderRadius: '12px', outline: 'none', fontSize: '16px'
+                                    }}
+                                />
+                                <button
+                                    onClick={() => { onSearchSubmit(); setIsOpen(false); }}
+                                    disabled={isSearching}
+                                    style={{
+                                        background: '#2196F3', color: 'white', border: 'none',
+                                        fontWeight: 'bold', borderRadius: '12px', padding: '0 20px'
+                                    }}
+                                >
+                                    {isSearching ? 'Buscando...' : 'Ir'}
+                                </button>
+                            </div>
+                            {searchError && <span style={{ color: '#ff4444', fontSize: '14px', alignSelf: 'center' }}>{searchError}</span>}
+                        </div>
 
                         {/* Follow Status */}
                         {followedName && (
