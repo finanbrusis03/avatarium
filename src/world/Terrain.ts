@@ -276,29 +276,6 @@ export class Terrain {
                         ctx.ellipse(p.x, p.y + 2, 4, 2, 0, 0, Math.PI * 2);
                         ctx.fill();
                     }
-                } else if (type === 'ROAD') {
-                    // Pedestrian crosswalks near intersections
-                    const xMod = x % 10;
-                    const yMod = y % 8; // Roads are horizontal every 8 tiles
-
-                    const nearVerticalIntersection = xMod === 0 && (y % 8 === 2 || y % 8 === 6);
-                    const nearHorizontalIntersection = yMod === 0 && (x % 10 === 2 || x % 10 === 8);
-
-                    if (nearVerticalIntersection || nearHorizontalIntersection) {
-                        ctx.save();
-                        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-                        ctx.translate(p.x, p.y);
-
-                        const isVerticalRoad = xMod === 0;
-                        ctx.rotate(isVerticalRoad ? (Math.PI / 6) : (-Math.PI / 6));
-
-                        // 4 Listras Brancas estilo Abbey Road
-                        for (let i = -1.5; i <= 1.5; i += 1) {
-                            ctx.fillRect(i * 8 - 2, -12, 4, 24);
-                        }
-
-                        ctx.restore();
-                    }
                 } else if (type === 'PLAZA') {
                     const cx = Math.floor(this.width / 2);
                     const cy = Math.floor(this.height / 2);
@@ -446,9 +423,43 @@ export class Terrain {
                 if (tLeft === 'ROAD') asphaltCount++;
 
                 if (asphaltCount >= 3) {
-                    // It's an intersection. We shouldn't draw a gray circle that overlaps badly.
-                    // The main diamond is already drawn correctly.
-                    // Let's just draw an intersection dashed square if needed, or leave it blank.
+                    // Intersection
+                }
+
+                // Pedestrian crosswalks (Drawn last in Pass 3 to be on top)
+                const xMod = t.x % 10;
+                const yMod = t.y % 8;
+
+                const nearVerticalIntersection = xMod === 0 && (t.y % 8 === 2 || t.y % 8 === 6);
+                const nearHorizontalIntersection = yMod === 0 && (t.x % 10 === 2 || t.x % 10 === 8);
+
+                if (nearVerticalIntersection || nearHorizontalIntersection) {
+                    ctx.save();
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.translate(p.x, p.y);
+
+                    // Isometric Perspective Alignment
+                    const isVerticalRoad = xMod === 0;
+
+                    // Usar a própria inclinação isométrica para as listras
+                    // No Avatarium, as vias são 2:1 (64x32)
+                    if (isVerticalRoad) {
+                        // Atravessa a via vertical (X=10) se movendo no eixo Y
+                        // Mas na verdade a faixa de pedestre deve estar no cruzamento da via vertical
+                        // As listras devem ser paralelas à via horizontal.
+                        ctx.transform(1, 0.5, -1, 0.5, 0, 0); // Isometria skew
+                        for (let i = -2; i <= 2; i++) {
+                            ctx.fillRect(i * 6 - 2, -10, 4, 20);
+                        }
+                    } else {
+                        // Atravessa a via horizontal (Y=8)
+                        ctx.transform(1, -0.5, 1, 0.5, 0, 0); // Isometria skew oposta
+                        for (let i = -2; i <= 2; i++) {
+                            ctx.fillRect(-10, i * 6 - 2, 20, 4);
+                        }
+                    }
+
+                    ctx.restore();
                 }
                 ctx.restore();
             }
