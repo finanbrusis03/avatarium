@@ -2,42 +2,23 @@ import { useState } from 'react';
 
 interface HUDMobileProps {
     onlineCount: number;
-    searchQuery: string;
-    onSearchChange: (val: string) => void;
-    onSearchSubmit: () => void;
-    searchError: string | null;
-    isSearching: boolean;
     followedName?: string;
     onStopFollowing: () => void;
     onZoom: (factor: number) => void;
     onResetZoom: () => void;
     onRecententer: () => void; // Reset camera position
-    onSendMessage?: (text: string) => void;
 }
 
 export function HUDMobile({
     onlineCount,
-    searchQuery,
-    onSearchChange,
-    onSearchSubmit,
-    searchError,
-    isSearching: _,
     followedName,
     onStopFollowing,
     onZoom,
     onResetZoom,
-    onRecententer,
-    onSendMessage
+    onRecententer
 }: HUDMobileProps) {
     const [isOpen, setIsOpen] = useState(false);
-    const [chatMsg, setChatMsg] = useState('');
 
-    const handleChatSubmit = () => {
-        if (!chatMsg.trim()) return;
-        onSendMessage?.(chatMsg.trim());
-        setChatMsg('');
-        setIsOpen(false);
-    };
 
     return (
         <>
@@ -90,53 +71,9 @@ export function HUDMobile({
                     }}>
                         <div style={{ width: '40px', height: '4px', background: '#444', borderRadius: '2px', margin: '0 auto' }} />
 
-                        {/* Search */}
-                        <div style={{ display: 'flex', gap: '10px' }}>
-                            <input
-                                value={searchQuery}
-                                onChange={(e) => onSearchChange(e.target.value)}
-                                placeholder="Buscar @nome"
-                                style={{
-                                    flex: 1, background: '#333', border: '1px solid #555', color: 'white',
-                                    padding: '12px', borderRadius: '12px', outline: 'none', fontSize: '16px'
-                                }}
-                            />
-                            <button
-                                onClick={() => { onSearchSubmit(); setIsOpen(false); }}
-                                style={{
-                                    background: '#FFD700', color: '#000', border: 'none',
-                                    fontWeight: 'bold', borderRadius: '12px', padding: '0 20px'
-                                }}
-                            >
-                                IR
-                            </button>
-                        </div>
-                        {searchError && <div style={{ color: '#E53935', fontSize: '14px' }}>{searchError}</div>}
 
-                        {/* Chat */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <label style={{ fontSize: '12px', color: '#888', fontWeight: 'bold' }}>FALAR NO CHAT</label>
-                            <div style={{ display: 'flex', gap: '10px' }}>
-                                <input
-                                    value={chatMsg}
-                                    onChange={(e) => setChatMsg(e.target.value)}
-                                    placeholder="Escreva sua mensagem..."
-                                    style={{
-                                        flex: 1, background: '#1a1a1a', border: '1px solid #444', color: 'white',
-                                        padding: '12px', borderRadius: '12px', outline: 'none', fontSize: '16px'
-                                    }}
-                                />
-                                <button
-                                    onClick={handleChatSubmit}
-                                    style={{
-                                        background: '#4CAF50', color: 'white', border: 'none',
-                                        fontWeight: 'bold', borderRadius: '12px', padding: '0 20px'
-                                    }}
-                                >
-                                    Enviar
-                                </button>
-                            </div>
-                        </div>
+
+
 
                         {/* Follow Status */}
                         {followedName && (

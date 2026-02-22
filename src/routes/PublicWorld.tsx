@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+
 import { useGameLoop } from '../engine/GameLoop';
 import { type Camera, INITIAL_CAMERA } from '../engine/Camera';
 import { isoToScreen, screenToIso } from '../engine/IsoMath';
@@ -23,7 +23,7 @@ const ZOOM_MIN = 0.4;
 const ZOOM_MAX = 3.5;
 
 export function PublicWorld() {
-    const [searchParams] = useSearchParams();
+
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rendererRef = useRef<WorldRenderer | null>(null);
     const isMobile = useIsMobile();
@@ -31,10 +31,7 @@ export function PublicWorld() {
     const [camera, setCamera] = useState<Camera>(INITIAL_CAMERA);
     const [creatures, setCreatures] = useState<Creature[]>([]);
 
-    // Search State
-    const [searchQuery, setSearchQuery] = useState('');
-    const [searchError, setSearchError] = useState<string | null>(null);
-    const [isSearching, setIsSearching] = useState(false);
+
 
     // Interaction State
     const [isDragging, setIsDragging] = useState(false);
@@ -118,14 +115,7 @@ export function PublicWorld() {
             }
         });
 
-        // 2. Sync Creatures
-        syncCreatures().then(() => {
-            // Handle URL Focus
-            const focusName = searchParams.get('focus');
-            if (focusName) {
-                handleSearch(focusName);
-            }
-        });
+        syncCreatures();
 
         pollIntervalRef.current = window.setInterval(syncCreatures, 5000);
 
@@ -302,37 +292,7 @@ export function PublicWorld() {
         }));
     };
 
-    const handleSearch = async (query: string) => {
-        if (!query) return;
-        setIsSearching(true);
 
-        // 1. Try finding in local list first (fast)
-        const normalized = normalizeHandle(query);
-        let target = creatures.find(c => normalizeHandle(c.name) === normalized);
-
-        // 2. If not found locally, try finding in DB
-        if (!target) {
-            const dbCreature = await AvatarService.getByName(normalized);
-            if (dbCreature) {
-                setCamera(prev => ({ ...prev, followTargetId: dbCreature.id }));
-                setSearchError(null);
-                setSearchQuery('');
-
-                // Inject manually to avoid glitch before next poll
-                if (!creatures.find(c => c.id === dbCreature.id)) {
-                    setCreatures(prev => [...prev, dbCreature]);
-                }
-            } else {
-                setSearchError('Avatar não encontrado');
-                setTimeout(() => setSearchError(null), 3000);
-            }
-        } else {
-            setCamera(prev => ({ ...prev, followTargetId: target.id }));
-            setSearchError(null);
-            setSearchQuery('');
-        }
-        setIsSearching(false);
-    };
 
     // --- Input Handlers (Mouse) ---
     const handleWheel = (e: React.WheelEvent) => {
@@ -504,41 +464,19 @@ export function PublicWorld() {
             {isMobile ? (
                 <HUDMobile
                     onlineCount={creatures.length}
-                    searchQuery={searchQuery}
-                    onSearchChange={setSearchQuery}
-                    onSearchSubmit={() => handleSearch(searchQuery)}
-                    searchError={searchError}
-                    isSearching={isSearching}
                     followedName={followedName}
                     onStopFollowing={() => setCamera(prev => ({ ...prev, followTargetId: null }))}
                     onZoom={applyZoom}
                     onResetZoom={() => setCamera(prev => ({ ...prev, targetZoom: 1 }))}
                     onRecententer={() => setCamera(prev => ({ ...prev, targetX: 0, targetY: 0, followTargetId: null }))}
-                    onSendMessage={(text: string) => {
-                        const player = creatures.find(c => normalizeHandle(c.name) === 'criszimn');
-                        if (player) {
-                            chatService.sendMessage(player.id, text);
-                        }
-                    }}
                 />
             ) : (
                 <HUDDesktop
                     onlineCount={creatures.length}
-                    searchQuery={searchQuery}
-                    onSearchChange={setSearchQuery}
-                    onSearchSubmit={() => handleSearch(searchQuery)}
-                    searchError={searchError}
-                    isSearching={isSearching}
                     followedName={followedName}
                     onStopFollowing={() => setCamera(prev => ({ ...prev, followTargetId: null }))}
                     onZoom={applyZoom}
                     onResetZoom={() => setCamera(prev => ({ ...prev, targetZoom: 1 }))}
-                    onSendMessage={(text: string) => {
-                        const player = creatures.find(c => normalizeHandle(c.name) === 'criszimn');
-                        if (player) {
-                            chatService.sendMessage(player.id, text);
-                        }
-                    }}
                 />
             )}
 

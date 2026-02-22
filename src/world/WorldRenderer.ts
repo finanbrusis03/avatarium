@@ -243,10 +243,14 @@ export class WorldRenderer {
 
             // Night Phase (lightLevel < 0.65)
             if (lightLevel < 0.65) {
-                // Transitions from 0 to 0.85 opacity as light level drops
                 const nightAlpha = Math.min(0.85, (0.65 - lightLevel) / 0.45 * 0.85);
+
+                // IMPORTANTE: Resetar o transform para desenhar em toda a tela (ignorando câmera/zoom)
+                ctx.save();
+                ctx.resetTransform();
                 ctx.fillStyle = `rgba(15, 15, 45, ${nightAlpha})`;
-                ctx.fillRect(0, 0, this.config.width * 64, this.config.height * 32); // Use world bounds if absolute
+                ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
+                ctx.restore();
             }
 
             // 6. Special Light Gaps / Glows (Drawn AFTER night mask in some cases, or BEFORE with screen blending)
@@ -269,38 +273,42 @@ export class WorldRenderer {
     }
 
     private drawAmbientEffects(ctx: CanvasRenderingContext2D, time: number, lightLevel: number, activeEvent: string | null) {
+        // Folhas/Vento ao invés de partículas genéricas
         const isNight = lightLevel < 0.4;
-        const baseParticles = 20;
-        const eventMult = activeEvent === 'LIGHTS_NIGHT' ? 3 : 1;
-        const particleCount = isNight ? baseParticles * 2 * eventMult : baseParticles * 0.5;
+        const particleCount = 40;
         const bounds = Math.max(this.config.width, this.config.height);
 
-        ctx.fillStyle = activeEvent === 'FESTIVAL' ? '#FFD700' : '#CDDC39';
+        // Festival = Confetes dourados. Normal = Folhas verdes voando ao vento
+        const isFestival = activeEvent === 'FESTIVAL';
+        const colors = isFestival ? ['#FFD700', '#FFA500', '#FF4500'] : ['#4CAF50', '#8BC34A', '#CDDC39'];
 
         for (let i = 0; i < particleCount; i++) {
             const seed = i * 1337;
-            const speed = 0.0005;
-            const t = time * speed + seed; // Use stable time
+            const speed = 0.001;
+            const t = time * speed + seed;
 
-            let gridX, gridY;
-            if (activeEvent === 'FESTIVAL') {
-                const radius = (Math.sin(t * 2) + 2) * 5;
-                gridX = (this.config.width / 2) + Math.cos(t * 5 + i) * radius;
-                gridY = (this.config.height / 2) + Math.sin(t * 5 + i) * radius;
-            } else {
-                gridX = (Math.sin(t) * 0.5 + 0.5) * bounds;
-                gridY = (Math.cos(t * 0.7 + seed) * 0.5 + 0.5) * bounds;
-            }
+            // Cordenadas Isométricas base
+            const gridX = (Math.sin(t * 0.8) * 0.5 + 0.5) * bounds;
+            const gridY = (Math.cos(t * 0.9 + seed) * 0.5 + 0.5) * bounds;
 
             const p = isoToScreen(gridX, gridY);
-            const floatY = Math.sin(time * 0.002 + i) * 20 - 30;
-            const alpha = (Math.sin(time * 0.005 + i) + 1) / 2 * (isNight ? 0.8 : 0.2);
+
+            // Altura / Flutuação com vento mais caótico
+            const floatY = Math.sin(time * 0.003 + i) * 30 - 40;
+            const floatX = Math.cos(time * 0.002 + i) * 20;
+
+            const alpha = Math.max(0, (Math.sin(time * 0.004 + seed) + 1) / 2);
+            // Rotacionar a folha
+            const rotation = time * 0.002 * (i % 2 === 0 ? 1 : -1) + seed;
 
             ctx.save();
-            ctx.globalAlpha = alpha;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y + floatY, 2, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.globalAlpha = alpha * (isNight ? 0.6 : 0.9); // Folhas mais visíveis de dia
+            ctx.fillStyle = colors[i % colors.length];
+
+            ctx.translate(p.x + floatX, p.y + floatY);
+            ctx.rotate(rotation);
+            ctx.fillRect(-2, -1, 4, 2); // Formato de folha/confete
+
             ctx.restore();
         }
     }
@@ -755,16 +763,17 @@ export class WorldRenderer {
         const worldHeight = this.config.height * 32;
 
         if (this.weather === 'RAIN') {
-            ctx.strokeStyle = 'rgba(174, 194, 224, 0.4)';
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = 'rgba(200, 220, 255, 0.6)'; // Chuva mais visível
+            ctx.lineWidth = 1.5;
             for (let i = 0; i < count; i++) {
                 const seed = i * 997;
+                // Preencher tela cheia baseando-se no viewport imaginário
                 const x = (seed + time * 0.1) % (worldWidth * 2) - worldWidth;
                 const yStart = (seed * 1.5 + time * speed) % (worldHeight * 2) - worldHeight;
 
                 ctx.beginPath();
                 ctx.moveTo(x, yStart);
-                ctx.lineTo(x - 4, yStart + 12); // Slightly slanted rain
+                ctx.lineTo(x - 8, yStart + 24); // Chuva mais longa e deitada
                 ctx.stroke();
             }
         } else if (this.weather === 'SNOW') {
